@@ -1,5 +1,5 @@
 name: su-sk
-remote_source: null
+remote_source: https://github.com/utranand/su-sk.git
 services:
   - services/smart-utilities-api
   - services/smart-utilities-citizen-api
