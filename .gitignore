@@ -1,2 +1,63 @@
-# Artifacts index is a derived, git-ignored cache (ARTIFACTS.md + run.json ARE tracked).
-artifacts/index.json
+# Local environment and credentials; checked-in examples contain placeholders only
+.env
+.env.*
+!.env.example
+!.env.*.example
+/config.yaml
+*.secret.yaml
+*.secret.yml
+*.secret.json
+*.pem
+*.key
+*.p12
+*.pfx
+.npmrc
+.netrc
+
+# Independent service checkouts are acquired from their own repositories
+/services/*/src/
+
+# Local operation output, incident evidence, memory and recovery data
+/artifacts/
+**/artifacts/
+/.knowledge/
+/.sidekicks/
+/output/
+/local-data/
+/.local-admin/
+/backups/
+/snapshots/
+**/ARTIFACTS.md
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.log
+*.log.*
+
+# Dependencies, generated application output and caches
+node_modules/
+.next/
+.turbo/
+.vercel/
+coverage/
+dist/
+build/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.tsbuildinfo
+
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+*.orig
