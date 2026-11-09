@@ -1,0 +1,16 @@
+# projects/shp-sk/config/skills-shared/jira.yaml — configuration owned by skill 'sk-jira-connector'.
+# Written by `sidekicks config migrate --skill-files`.
+
+jira:
+  shp:
+    jira_url: https://bedrockanalystics.atlassian.net
+    jira_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    default_project: SDHPT
+    default_assignee: 
+  su:
+    jira_url: https://bedrockanalystics.atlassian.net
+    jira_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    default_project: SU
+    default_assignee: 

@@ -1,0 +1,17 @@
+# projects/shp-sk/config/skills/sk-jira-kanban.yaml — configuration owned by skill 'sk-jira-kanban'.
+# Written by `sidekicks config migrate --skill-files`.
+
+jira_kanban:
+  env: shp
+  port: 8765
+  active_board: my-work
+  boards:
+    my-work:
+      assignee: me
+      projects: 
+      statuses: []
+      jql: ""
+      max: 200
+      columns: 
+      default_column: Backlog
+      env: shp

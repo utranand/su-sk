@@ -1,0 +1,17 @@
+-- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Generate complete exact-scope SQL from the canonical SQL contracts, then independently review it.
+-- BEGIN with bounded timeouts and appropriate locking/isolation; assert database/tenant/entity/PKs,
+-- exact counts, original full hashes, payment/printing, fiscal/configuration and dependencies BEFORE DML.
+-- AMOUNT: invoice label + transaction fee + complete final QR/barcode amount token change atomically.
+-- CANCELLATION: delete only exact unpaid/unprinted invoice + exclusive mappings + QR/barcode rows;
+-- reject shared UUIDs/duplicate payment refs, preserve financial transactions/receipts/bank/settings.
+-- Use saved original references for payment checks even after deleting live QR rows.
+-- Assert every actual DML row count and capture affected IDs/keys/readbacks with RETURNING/NOTICE.
+-- Preserve original audit values, append remarks only where columns exist; no guessed schema/status.
+-- Assert after-state and preserved rows. Default ROLLBACK. Live dry-run and COMMIT are separate approvals.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: generate and review current incident guards/DML; this worksheet is not executable correction SQL';
+END $authoring_only$;
+ROLLBACK;

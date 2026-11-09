@@ -1,0 +1,328 @@
+# projects/shp-sk/config/skills/sk-cluster-ops.yaml — configuration owned by skill 'sk-cluster-ops'.
+# Written by `sidekicks config migrate --skill-files`.
+
+cluster_ops:
+  project: shph
+  environments:
+    sit:
+      namespace: shph-sit
+      kubectl_context: bedrock-nonprod-thailand
+      aws_profile: bedrock-nonprod
+      aws_region: ap-southeast-7
+      downscaler:
+        uptime: 
+      deployments: []
+    uat:
+      namespace: shph-uat
+      kubectl_context: bedrock-nonprod-thailand
+      aws_profile: bedrock-nonprod
+      aws_region: ap-southeast-7
+      downscaler:
+        uptime: 
+      deployments: []
+    sit-sg:
+      namespace: shph-sit
+      kubectl_context: bedrock-nonprod
+      aws_profile: bedrock-nonprod
+      aws_region: ap-southeast-1
+      downscaler:
+        uptime: 
+      deployments: []
+  secrets:
+    root: secrets/bedrock
+    naming_patterns:
+      - bedrock/{project}/{env}/{service}
+      - bedrock/{env}/shared-service/{service}
+      - bedrock/{project}/{env}/{project}-{service}-{env}
+  secret_name_map:
+    connection-api:
+      sit-sg:
+        externalsecret_name: connection-api-sit
+        k8s_secret_name: ms-connection-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-connection-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: connection-api-uat
+        k8s_secret_name: ms-connection-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-connection-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-connection-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-connection-api
+          - bedrock/common-secret-prod-th
+    dashboard:
+      sit-sg:
+        externalsecret_name: dashboard
+        k8s_secret_name: shared-services-dashboard-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/sit/shared-service/dashboard
+          - bedrock/common-secret-nonprod
+    dashboard-api:
+      sit-sg:
+        externalsecret_name: dashboard-api-sit
+        k8s_secret_name: dashboard-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-dashboard-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: dashboard-api-uat
+        k8s_secret_name: dashboard-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-dashboard-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: dashboard-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-dashboard-api
+          - bedrock/common-secret-prod-th
+    db-migration-provinces:
+      sit-sg:
+        externalsecret_name: db-migration-provinces-sit
+        k8s_secret_name: db-migration-provinces-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/db-migration-provinces
+          - bedrock/common-secret-nonprod
+    files-api:
+      sit-sg:
+        externalsecret_name: files-api-sit
+        k8s_secret_name: ms-file-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-files-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: files-api-uat
+        k8s_secret_name: ms-files-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-files-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-file-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-files-api
+          - bedrock/common-secret-prod-th
+    hospital-profile-api:
+      sit-sg:
+        externalsecret_name: hospital-profile-api-sit
+        k8s_secret_name: ms-hospital-profile-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-hospital-profile-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: hospital-profile-api-uat
+        k8s_secret_name: ms-hospital-profile-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-hospital-profile-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-hospital-profile-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-hospital-api
+          - bedrock/common-secret-prod-th
+    log-api:
+      sit-sg:
+        externalsecret_name: log-api-sit
+        k8s_secret_name: ms-log-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-log-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: log-api-uat
+        k8s_secret_name: ms-log-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-log-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-log-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-log-api
+          - bedrock/common-secret-prod-th
+    master-data-api:
+      sit-sg:
+        externalsecret_name: master-data-api-sit
+        k8s_secret_name: ms-master-data-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-master-data-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: master-data-api-uat
+        k8s_secret_name: ms-master-data-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-master-data-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-master-data-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-master-data-api
+          - bedrock/common-secret-prod-th
+    medical-record-api:
+      sit:
+        externalsecret_name: medical-record-api-sit
+        k8s_secret_name: ms-medical-record-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-medical-record-api
+          - bedrock/common-secret
+      sit-sg:
+        externalsecret_name: medical-record-api-sit
+        k8s_secret_name: ms-medical-record-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-medical-record-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: medical-record-api-uat
+        k8s_secret_name: ms-medical-record-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-medical-record-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-medical-record-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-medical-record-api
+          - bedrock/common-secret-prod-th
+    payment-api:
+      sit-sg:
+        externalsecret_name: payment-api-sit
+        k8s_secret_name: ms-payment-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-payment-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: payment-api-uat
+        k8s_secret_name: ms-payment-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-payment-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-payment-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-payment-api
+          - bedrock/common-secret-prod-th
+    person-profile-api:
+      sit-sg:
+        externalsecret_name: person-profile-api-sit
+        k8s_secret_name: ms-person-profile-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-person-profile-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: person-profile-api-uat
+        k8s_secret_name: ms-person-profile-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-person-profile-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-person-profile-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-person-profile-api
+          - bedrock/common-secret-prod-th
+    pharmacy-and-medical-supplies-api:
+      sit-sg:
+        externalsecret_name: pharmacy-and-medical-supplies-api-sit
+        k8s_secret_name: ms-pharmacy-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-pharmacy-and-medical-supplies-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: pharmacy-and-medical-supplies-api-uat
+        k8s_secret_name: ms-pharmacy-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-pharmacy-and-medical-supplies-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-pharmacy-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-pharmacy-and-medical-supplies-api
+          - bedrock/common-secret-prod-th
+    report-api:
+      sit-sg:
+        externalsecret_name: report-api-sit
+        k8s_secret_name: ms-report-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-report-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: report-api-uat
+        k8s_secret_name: ms-report-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-report-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: ms-report-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-report-api
+          - bedrock/common-secret-prod-th
+    shp-kafka-consumer-service:
+      sit-sg:
+        externalsecret_name: shp-kafka-consumer-service-sit
+        k8s_secret_name: shp-kafka-consumer-service-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/shp-kafka-consumer-service
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: shp-kafka-consumer-service-uat
+        k8s_secret_name: shp-kafka-consumer-service-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/shp-kafka-consumer-service
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: shp-kafka-consumer-service-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/shp-kafka-consumer-service
+          - bedrock/common-secret-prod-th
+    visits-queue-journey-api:
+      sit-sg:
+        externalsecret_name: visits-queue-journey-api-sit
+        k8s_secret_name: visits-queue-journey-api-secret-sit
+        namespace: shph-sit
+        aws_secret_paths:
+          - bedrock/shph/sit/pcu-ms-visits-queue-journey-api
+          - bedrock/common-secret-nonprod
+      uat:
+        externalsecret_name: visits-queue-journey-api-uat
+        k8s_secret_name: visits-queue-journey-api-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/pcu-ms-visits-queue-journey-api
+          - bedrock/common-secret
+      prod:
+        k8s_secret_name: visits-queue-journey-api-secret
+        aws_secret_paths:
+          - bedrock/shph/prod/pcu-ms-visits-queue-journey-api
+          - bedrock/common-secret-prod-th
+    shp-dashboard-ui:
+      uat:
+        externalsecret_name: shp-dashboard-ui-uat
+        k8s_secret_name: shp-dashboard-ui-secret-uat
+        namespace: shph-uat
+        aws_secret_paths:
+          - bedrock/shph/uat/shp-dashboard-ui
+          - bedrock/common-secret

@@ -1,0 +1,28 @@
+# projects/shp-sk/config/skills/sk-argocd-ops.yaml — configuration owned by skill 'sk-argocd-ops'.
+# Written by `sidekicks config migrate --skill-files`.
+
+argocd_ops:
+  server: argocd.bedr.dev
+  grpc_web: false
+  auth: sso
+  values_service: ci-values
+  app_naming: {app}-{env_short}
+  environments:
+    sit-th:
+      argocd_project: nonprod-nt-shph
+      cluster: bedrock-nonprod-nt
+      namespace: shph-sit
+      values_repo: https://gitlab-ce.arv.co.th/cloud_arv/bedrock/devops/ci-values.git
+      values_branch: main
+      values_path: shph/sit-th
+      chart_repo: https://gitlab-ce.arv.co.th/cloud_arv/bedrock/devops/templates/helm-charts/general.git
+      tier: nonprod
+    uat-th:
+      argocd_project: nonprod-nt-shph
+      cluster: bedrock-nonprod-nt
+      namespace: shph-uat
+      values_repo: https://gitlab-ce.arv.co.th/cloud_arv/bedrock/devops/ci-values.git
+      values_branch: main
+      values_path: shph/uat-th
+      chart_repo: https://gitlab-ce.arv.co.th/cloud_arv/bedrock/devops/templates/helm-charts/general.git
+      tier: nonprod

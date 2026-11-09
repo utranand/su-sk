@@ -1,0 +1,141 @@
+# projects/shp-sk/config/skills-shared/database_connector.yaml — configuration owned by skill 'sk-database-connector'.
+# Written by `sidekicks config migrate --skill-files`.
+
+database_connector:
+  local-database:
+    host: localhost
+    port: 5432
+    user: master_user
+    password: ""
+    dbname: master_db
+  local-province-db:
+    host: localhost
+    port: 5432
+    user: local_province_db_master
+    password: ""
+    dbname: local_province_db
+  local-common-db:
+    host: localhost
+    port: 5432
+    user: local_common_db_master
+    password: ""
+    dbname: local_common_db
+  local-bedrock-demo:
+    host: localhost
+    port: 5432
+    user: shp_bedrock_demo_local_master
+    dbname: shp_bedrock_demo_local
+  local-bedrock:
+    host: localhost
+    port: 5432
+    user: shp_bedrock_local_master
+    dbname: shp_bedrock_local
+  local-training:
+    host: localhost
+    port: 5432
+    user: shp_training_local_master
+    dbname: shp_training_local
+  local-pao-02450101-ret:
+    host: localhost
+    port: 5432
+    user: shp_pao_02450101_ret_local_master
+    dbname: shp_pao_02450101_ret_local
+  local-pao-02940101-ptn:
+    host: localhost
+    port: 5432
+    user: shp_pao_02940101_ptn_local_master
+    dbname: shp_pao_02940101_ptn_local
+  local-pao-02810101-kbi:
+    host: localhost
+    port: 5432
+    user: shp_pao_02810101_kbi_local_master
+    dbname: shp_pao_02810101_kbi_local
+  local-pao-02250101-pri:
+    host: localhost
+    port: 5432
+    user: shp_pao_02250101_pri_local_master
+    dbname: shp_pao_02250101_pri_local
+  local-pao-02300101-nma:
+    host: localhost
+    port: 5432
+    user: shp_pao_02300101_nma_local_master
+    dbname: shp_pao_02300101_nma_local
+  local-pao-02190101-sri:
+    host: localhost
+    port: 5432
+    user: shp_pao_02190101_sri_local_master
+    dbname: shp_pao_02190101_sri_local
+  legacy-common-sit:
+    host: bedrock-dev-db.cluster-cq6wq7ckjmhj.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    user: shph_common_sit_master
+    password: ""
+    dbname: shph_common_sit
+    active_schemas:
+      - ms_connection
+      - ms_files
+      - ms_master
+      - ms_hospital
+      - ms_log
+      - ms_partner_eco
+  legacy-province-sit-pri:
+    host: bedrock-dev-db.cluster-cq6wq7ckjmhj.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    user: shph_pao_02250101_pri_sit_master
+    password: ""
+    dbname: shph_pao_02250101_pri_sit
+    active_schemas:
+      - ms_medical_record
+      - ms_payment
+      - ms_person
+      - ms_pharmacy
+      - ms_queue_journey
+      - ms_report
+  legacy-province-sit-ret:
+    host: bedrock-dev-db.cluster-cq6wq7ckjmhj.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    user: shph_pao_02450101_ret_sit_master
+    password: ""
+    dbname: shph_pao_02450101_ret_sit
+    active_schemas:
+      - ms_medical_record
+      - ms_payment
+      - ms_person
+      - ms_pharmacy
+      - ms_queue_journey
+      - ms_report
+      - ms_log_history
+  legacy-province-sit-kbi:
+    host: bedrock-dev-db.cluster-cq6wq7ckjmhj.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    user: shph_pao_02810101_kbi_sit_master
+    password: ""
+    dbname: shph_pao_02810101_kbi_sit
+    active_schemas:
+      - ms_medical_record
+      - ms_payment
+      - ms_person
+      - ms_pharmacy
+      - ms_queue_journey
+      - ms_report
+  legacy-province-sit-ptn:
+    host: bedrock-dev-db.cluster-cq6wq7ckjmhj.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    user: shph_pao_02940101_ptn_sit_master
+    password: ""
+    dbname: shph_pao_02940101_ptn_sit
+    active_schemas:
+      - ms_medical_record
+      - ms_payment
+      - ms_person
+      - ms_pharmacy
+      - ms_queue_journey
+      - ms_report
+  legacy-dashboard-sit:
+    host: bedrock-dev-db.cluster-cq6wq7ckjmhj.ap-southeast-1.rds.amazonaws.com
+    port: 5432
+    user: shph_dashboard_sit_master
+    password: ""
+    dbname: shph_dashboard_sit
+    active_schemas:
+      - dashboard

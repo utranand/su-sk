@@ -1,0 +1,8 @@
+# projects/shp-sk/config/skills/sk-jira-ready-gate.yaml — configuration owned by skill 'sk-jira-ready-gate'.
+# Written by `sidekicks config migrate --skill-files`.
+
+jira_ready_gate:
+  transitions:
+    on_ready: READY
+    on_not_ready: ""
+  confluence_env: MoreAnamai

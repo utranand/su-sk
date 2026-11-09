@@ -1,0 +1,38 @@
+# projects/shp-sk/config/skills/sk-confluence-connector.yaml — configuration owned by skill 'sk-confluence-connector'.
+# Written by `sidekicks config migrate --skill-files`.
+
+confluence:
+  SmartHealthPlatform-wiki:
+    confluence_url: https://bedrockanalystics.atlassian.net/wiki
+    confluence_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    confluence_space_key: HPH
+    confluence_parent_page_id: ""
+    source_folder: ""
+    title_from_filename: true
+    title_prefix: SHP DD
+  MoreAnamai:
+    confluence_url: https://bedrockanalystics.atlassian.net/wiki
+    confluence_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    confluence_space_key: MoreAnamai
+  SmartHealthPlatform:
+    confluence_url: https://bedrockanalystics.atlassian.net/wiki
+    confluence_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    confluence_space_key: HPH
+  SOLAR:
+    confluence_url: https://bedrockanalystics.atlassian.net/wiki
+    confluence_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    confluence_space_key: SOLAR
+  TechKnowledge:
+    confluence_url: https://bedrockanalystics.atlassian.net/wiki
+    confluence_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    confluence_space_key: TK
+  SharedServices:
+    confluence_url: https://bedrockanalystics.atlassian.net/wiki
+    confluence_email: puttipongu@bedrockanalytics.ai
+    api_token: ""
+    confluence_space_key: PPD

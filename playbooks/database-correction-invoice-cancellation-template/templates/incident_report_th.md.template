@@ -1,0 +1,16 @@
+# <CARD_KEY> — <ENTITY_TYPE> <ENTITY_UUID>
+
+ผู้ชำระ <PAYER_NO> / เทศบาล <MUNICIPALITY> / ระบบจริง <SID> / ฐานข้อมูลตรง <DB_ALIAS>
+
+สถานะจริง: <เตรียมสคริปต์ | ยังไม่ทดลอง | ทดลองแล้วROLLBACK | COMMITและตรวจสอบแล้ว | ล้มเหลว | ยังไม่ทราบผล>
+
+- รอบบิลและการเปลี่ยนแปลง: <PERIODS_AND_EXACT_ACTIONS>
+- จำนวนที่ตั้งใจ/จำนวนที่พบจริง: <EXPECTED_AND_ACTUAL_PER_TABLE_COUNTS_OR_NOT_RUN>
+- รายการ UUID/เลขที่ใบแจ้งหนี้และผลต่อ QR/Barcode/ความสัมพันธ์: <ID_ACTION_LIST_REFERENCE>
+- ข้อมูลทางการเงินและการตั้งค่าที่คงไว้: <PRESERVED_SCOPE_AND_EVIDENCE>
+- การอนุมัติแต่ละการดำเนินการและการประสานหยุดทำรายการ: <ACTUAL_AUTHORIZATION_AND_CONCURRENCY_FACTS>
+- ผล ROLLBACK/COMMIT และการตรวจสอบข้อมูลผ่านการเชื่อมต่อใหม่: <ACTUAL_RESULT_OR_NOT_RUN>
+- ข้อมูลสำรองและสคริปต์กู้คืนสถานะเดิม: <CHECKSUM_AND_BINDING>
+- หลักฐาน/ข้อจำกัด/ขั้นตอนที่ยังเหลือ: <RECEIPTS_AND_REMAINING_WORK>
+
+ไม่ใส่ SQL ดิบในรายงานผู้บริหาร และไม่ระบุว่าทดลองสำเร็จหากมีเพียง EXPLAIN หรือการจำลองนอกฐานข้อมูล

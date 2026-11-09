@@ -1,0 +1,15 @@
+# projects/shp-sk/config/skills/sk-teleport-cluster-ops.yaml — configuration owned by skill 'sk-teleport-cluster-ops'.
+# Written by `sidekicks config migrate --skill-files`.
+
+teleport_cluster_ops:
+  prod-th:
+    proxy: bedrock.teleport.sh:443
+    kube_cluster: bedrock-prod-thailand-main
+    default_namespace: shph
+    default_role: viewer
+    roles:
+      viewer:
+        request_role: shp-viewer
+      editor:
+        request_role: shp-editor-requestor
+    local_port: 0

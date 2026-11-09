@@ -1,0 +1,51 @@
+# Playbook Rules: Production Database Operations (`su-sk`)
+
+> **Scope:** Smart Utilities (`su-sk`) and Production PostgreSQL Services  
+> **Authority:** Standing operational rules for all database correction playbooks and operational incidents.  
+> **Rule Reference Contract:** Playbooks reference rules **by file only** (`playbook_rules_file_ids`). Referencing a rules file means that the playbook **MUST strictly follow all rule-ids defined under that rules file**.
+
+## Reusable correction/cancellation entry
+
+Use [database-correction.invoice-receipt-incident1.1.0](./invoice-receipt-correction/README.md) for new incidents. Its default stage is preparation. Amount/cancellation catalog templates are non-executable authoring contracts for generating a fresh verified five-script suite; no prior incident IDs/counts/permissions are defaults. Apply the current rule files, exact ID/action footprints, real rollback/commit receipts and distinct authorization gates.
+
+---
+
+## Standing Playbook Rule Files
+
+The project partitions operational rules into two distinct, self-contained rule files under [`rules/`](./rules/):
+
+| Rules File | Category | Focus Area | Enforced Rule IDs | File Path |
+|---|---|---|---|---|
+| **`playbook-business-rules.md`** | **Business Logic** | Billing models, payment statuses, customer data constraints, financial consistency | `PBR-01` to `PBR-06` | [`rules/playbook-business-rules.md`](./rules/playbook-business-rules.md) |
+| **`playbook-architect-rules.md`** | **Architecture & Security** | Development context, least privilege (0 DDL), transaction safety, blast radius, dry-runs, reporting | `PAR-01` to `PAR-07` | [`rules/playbook-architect-rules.md`](./rules/playbook-architect-rules.md) |
+
+---
+
+## 1. Business Rules Overview (`playbook-business-rules.md`)
+
+Contains **only business logic checking** for the Smart Utilities domain, consolidated into 6 unified rule definitions:
+
+- **`PBR-01`: Invoice Lifecycle & Mutation Scope (Unpaid, Unprinted & Demographic Mutability):** Rate adjustments apply **ONLY to unprinted, unpaid bills** (`status = 'invoice_status_1'`, `receipt_id IS NULL`, `printed_date IS NULL`). If any candidate bill was paid or printed, financial amounts are strictly immutable and **execution must HALT immediately**. Historical paid periods with receipts must remain completely untouched. However, non-financial demographic metadata (name, address, tax ID, deed no) **CAN be updated** on printed/paid records without reconciliation impact. *(Consolidates former PBR-01, PBR-05, PBR-07, PBR-09)*
+- **`PBR-02`: Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability & Due Date Extension):** For accumulated billing (water), arrears roll over; updates are restricted to the **current active month only**, and due dates (`payment_due_date`) must **NEVER be extended** because QR codes are stateless and query the bank directly (checking only expiry + paid status), which would allow old and new bills to be paid simultaneously leading to double payments (ชำระซ้ำซ้อน) or overlapped reconciliation failure. For non-accumulated billing (garbage), rounds are discrete month-by-month; any unpaid unprinted month can be updated independently and due date extension is permitted. *(Consolidates former PBR-02, PBR-10, PBR-12)*
+- **`PBR-03`: Fiscal Year Cycle & Cross-Year Boundary Lock:** Fiscal year ends September 30. Rounds in Oct–Dec have `tax_year = round_year + 1`; rounds in Jan–Sep have `tax_year = round_year`. Public revenues and budgets cannot cross fiscal years. While amounts within a fiscal year (e.g. September) can be modified, they **CANNOT be modified, canceled, or shifted to be paid across into October (the next fiscal year)**. In multi-round adjustments, each billing round must be pinned strictly to its own respective accounting `tax_year`. *(Consolidates former PBR-06, PBR-11)*
+- **`PBR-04`: Multi-Tenant Municipality Payer Disambiguation & Strict Scope Confinement:** Customer numbers (`68000977`) are shared across municipalities. Queries and updates must resolve and pin the unique entity UUID (`garbage_id` / `water_id`) and row primary keys. **Municipality Scope Confinement:** When the Jira card assigns a municipality (e.g. `[เกาะสมุย]`), the entire scope of work, investigation, verification (PBR-01..PBR-06), and correction is strictly confined within that municipality. Never evaluate, inspect, or mutate data across other municipalities. *(Former PBR-03)*
+- **`PBR-05`: Multi-Channel Satang Synchronization:** Updating fees requires atomic synchronization of complete final PromptPay QR and barcode amount tokens in satang (150baht=15000satang; never last-four-character truncation) (`garbage_fee_qrcode.qr_code_text`, `barcode_text`) in the same transaction so payment gateways charge the exact business rate. *(Former PBR-04)*
+- **`PBR-06`: Unpaid Invoice Cancellation by Guarded Deletion:** Cancellation means deleting the exact verified unpaid invoice rows together with their exclusive QR/barcode rows and mapping links in one guarded transaction, rather than assigning a guessed cancellation status. A future due date alone is not a blocker; explicitly verify removal instead of assuming a cascade. Preserve financial transactions, receipts, bank records and unrelated data. Overdue does not imply paid; verify current payment/printing state, actual relationships, exact entity/primary keys and expected counts. Never delete paid invoices or receipt/bank accounting records. Require immutable offline backup, guarded atomic transaction, recovery and explicit per-action approval. Do not use `invoice_status_2` as canceled in the garbage workflow.
+
+👉 *Read the full business specification in [`rules/playbook-business-rules.md`](./rules/playbook-business-rules.md).*
+
+---
+
+## 2. Architect Rules Overview (`playbook-architect-rules.md`)
+
+Contains **architecture, development context, code security, and execution safety** that do not belong to business logic. Every playbook referencing `playbook-architect-rules.md` must adhere to all rules below:
+
+- **`PAR-01`: Zero DDL Floor (Application-User Least Privilege):** The prod app DB user has no `CREATE TABLE` / `ALTER TABLE` privileges. Pure DML only. Pre-fix snapshots are exported to offline JSON (`backup_data_<date>.json`); rollback is scripted as pure DML (`05_rollback.sql`).
+- **`PAR-02`: Guarded Atomic Transaction:** All mutations run inside a single transaction (`BEGIN ... ROLLBACK/COMMIT`) with an upfront PL/pgSQL assertion block (`DO $$ ... $$;`) asserting expected row counts before modifying data. Aborts with `RAISE EXCEPTION` on mismatch.
+- **`PAR-03`: Mandatory Dry-Run (Rollback Default):** Correction scripts must default to ending in `ROLLBACK;`. Verify in-transaction readback preview during dry-run before changing to `COMMIT;`.
+- **`PAR-04`: Human Sign-Off Gate (Production Write Safety):** Governed by framework Rule 4. A production database mutation is **NEVER autonomous**. Live commit requires explicit human approval.
+- **`PAR-05`: Primary Key Specificity & Blast-Radius Audit:** Every update must pin explicit row primary key UUIDs and include Jira ticket audit remarks (`remarks = '<CARD_KEY> ...'`).
+- **`PAR-06`: Zero-SQL Executive Reporting (Thai):** Produce a non-technical executive incident report (`INCIDENT_REPORT_TH.md`) with prominent target entity UUID and zero raw SQL code.
+- **`PAR-07`: Complete Workspace & Jira Audit Trail:** Maintain isolated feature workspace, standard 5-script suite, offline JSON backup, syntax-highlighted footprints on Jira, and synchronize the Business Rules Decision Gate directly into the task description's Definition of Ready (DoR) block.
+
+👉 *Read the full architecture specification in [`rules/playbook-architect-rules.md`](./rules/playbook-architect-rules.md).*

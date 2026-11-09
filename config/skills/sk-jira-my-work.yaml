@@ -1,0 +1,10 @@
+# projects/shp-sk/config/skills/sk-jira-my-work.yaml — configuration owned by skill 'sk-jira-my-work'.
+# Written by `sidekicks config migrate --skill-files`.
+
+jira_my_work:
+  env: shp
+  boards:
+    - SDHPT
+  assignee: me
+  statuses: []
+  max: 100

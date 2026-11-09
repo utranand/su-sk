@@ -1,0 +1,71 @@
+schema: sidekicks.playbook/v2
+playbook_id: database-correction.invoice-receipt-incident
+display_name: Invoice correction and unpaid cancellation / แก้ไขยอดและยกเลิกใบแจ้งหนี้
+purpose: Prepare, review, dry-run, commit and verify a scoped utility billing correction with recoverable SQL and evidence-backed Jira checklists.
+when_to_use: Smart Utilities incidents involving invoice amount changes, unpaid invoice cancellation, or receipt investigation. Applies per verified utility/schema; paid-record refunds and unrelated operational fixes require their own workflow.
+status: active
+kind: agent
+risk: mutating
+version: 1.1.0
+uses_skills:
+  - sk-jira-connector
+  - sk-database
+  - sk-jira
+playbook_rules_file_ids:
+  - playbook-business-rules.md
+  - playbook-architect-rules.md
+parameters:
+  card:
+    type: string
+    required: true
+    description: Jira incident or subtask key; read its parent and reuse the parent workspace.
+  jira_env:
+    type: string
+    required: false
+    default: su
+    description: Registered Jira alias; verify it belongs to the incident.
+  database_env:
+    type: string
+    required: false
+    default: smart_utilities_prod
+    description: Registered direct database alias; confirm target and tier. This default is not write consent.
+  stage:
+    type: string
+    required: false
+    default: prepare
+    description: prepare, dry-run, commit, or verify. Stage selection never grants live-mutation permission.
+  operation:
+    type: string
+    required: false
+    default: from-card
+    description: from-card, amount, cancellation, or combined; derive exact approved operations and periods from this incident.
+  work_item:
+    type: string
+    required: false
+    default: ''
+    description: Reuse supplied work item/run anchors; otherwise derive from the parent card. Never create a separate child workspace.
+  user_guide:
+    type: string
+    required: false
+    default: ''
+    description: Task-specific adjustments within the current rules, exact scope and approval boundaries.
+procedure:
+  - 'Read prompts/task.md section 1 and bind {{card}}, {{jira_env}}, {{database_env}}, {{stage}}, {{operation}} and {{work_item}}. Read the parent first, reuse its workspace and register this playbook/version for each applicable card; preserve reporter content. Preparation is the default; load both shared rule files and references/sql-contracts.md. Dispatch by stage under canonical procedure section 1 before any later bullet: prepare authors; dry-run/commit reuse the unchanged reviewed package and original snapshot; verify is read-only, reuses matching existing evidence and never regenerates or rebinds 03/05 or the snapshot.'
+  - 'Follow prompts/task.md section 2: inspect attachments and directly query scoped live records early. Resolve municipality to real system ID and unique payer entity before querying financial records; establish exact invoice/transaction/QR/mapping IDs, periods, counts, printing, receipts, saved bank references, fiscal years and dependencies. Discover schema rather than reusing incident values.'
+  - For stage=prepare only, use prompts/task.md section 3 and references/sql-contracts.md to author the five-file SQL suite, immutable full-row backup, exact before/after guards, cancellation recovery and matching verification for every variant. Synchronize full QR/barcode amount tokens. Obtain independent review and bind the actual source digests; preparation checks are not runtime evidence.
+  - Use templates/report.md.template and templates/checklist.md.template to show exact invoice ID/action lists and a short interactive readiness checklist under prompts/task.md section 4. Evaluate every applicable PBR/PAR requirement once, mark inapplicable receipt work N/A and unknown evidence unmet, and separate preparation, live dry-run, commit and recovery states.
+  - For an explicitly requested dry-run with valid exact-action user approval, follow prompts/task.md section 5 in one direct atomic session ending ROLLBACK. Capture stdout, stderr, runtime counts, exact removed IDs, readbacks and the rollback completion marker, then verify the complete original state from a separate read-only connection. Without that approval record NOT RUN.
+  - For an explicitly requested commit after the matching successful dry-run and separate exact-action user approval, follow prompts/task.md section 6. Resolve any demonstrated concurrent-payment/QR insertion risk through a confirmed payer quiet window or separately authorized reviewed control. Refresh guards, change only the final ROLLBACK to COMMIT, execute once and verify the exact committed projection from a fresh connection; never retry an uncertain outcome.
+  - After a verified COMMIT only, follow prompts/task.md section 7 to bind standby recovery to actual committed after-images and restore complete original invoice, QR and mapping rows in dependency order. Keep recovery rollback-default, reject drift/conflicts and obtain fresh authorization for a later live restore. Automatic rollback on a failed uncommitted transaction is immediate and needs no second permission.
+  - 'Follow prompts/task.md section 8: publish actual ID lists, per-table counts, rule/readiness state, result and uniquely named receipts through Jira footprints; refresh the parent workspace registry and show the report to the user. Honor an explicitly requested Jira status through offered workflow transitions; status changes do not authorize Git merges, deployments or new database actions.'
+required_template_files:
+  - templates/report.md.template
+  - templates/checklist.md.template
+human_gate:
+  required: true
+  description: Every live mutation needs its exact-action authorization; recall an existing valid scoped grant without asking twice. Dry-run, commit and post-commit restore are distinct actions.
+  before_phase: step-5
+outputs:
+  layout: Reuse the Jira parent feature workspace override through its supported writer; store scripts/reports in outputs/playbook and immutable attempt receipts under evidence/<action>-<timestamp>. Otherwise use playbook run-base. Never move historical incident evidence.
+evidence:
+  required_artifacts: []

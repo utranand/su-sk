@@ -1,0 +1,45 @@
+# projects/shp-sk/config/skills/sk-teleport-database-connector.yaml — configuration owned by skill 'sk-teleport-database-connector'.
+# Written by `sidekicks config migrate --skill-files`.
+
+teleport_database_connector:
+  defaults:
+    proxy: bedrock.teleport.sh:443
+    cluster: health-prod-thailand
+    default_role: viewer
+    roles:
+      viewer:
+        db_user: shp_viewer
+        request_role: shp-viewer
+      editor:
+        db_user: shp_editor
+        request_role: shp-editor
+    local_port: 0
+  shp-th-common-prod:
+    db_name: shp_common_prod
+    active_schemas:
+      - ms_connection
+      - ms_files
+      - ms_master
+      - ms_hospital
+      - ms_log
+      - ms_partner_eco
+  shp-th-dashboard-prod:
+    db_name: shp_dashboard_prod
+  shp-th-province-prod-nma:
+    db_name: shp_pao_02300101_nma_prod
+    active_schemas:
+      - ms_medical_record
+      - ms_payment
+      - ms_person
+      - ms_pharmacy
+      - ms_queue_journey
+      - ms_report
+  shp-th-province-prod-ret:
+    db_name: shp_pao_02450101_ret_prod
+    active_schemas:
+      - ms_medical_record
+      - ms_payment
+      - ms_person
+      - ms_pharmacy
+      - ms_queue_journey
+      - ms_report

@@ -1,0 +1,10 @@
+-- Playbook database-correction.invoice-cancellation1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Generate one consistent read-only full-row JSON snapshot for exact scoped rows:
+-- invoices, transactions, QR/barcode rows, mapping links, receipts/payment links,
+-- saved tenant/reference bank matches, detail and relevant fee/future settings.
+-- Preserve every column/null/enum/JSON/timestamp and capture observed_at plus checksum.
+-- Include relationships by pinned keys; do not depend on surviving invoice joins after deletion.
+-- Store a private immutable offline snapshot. No production backup tables or DDL.
+-- Confirm originals still match before each authorized action; test typed recovery with bounded PK SELECTs.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate a consistent verified full-row backup SELECT' AS template_status;

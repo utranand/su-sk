@@ -1,0 +1,27 @@
+# projects/shp-sk/config/skills/sk-slack-connector.yaml — configuration owned by skill 'sk-slack-connector'.
+# Written by `sidekicks config migrate --skill-files`.
+
+slack:
+  sidekicks-noti:
+    bot_token: ""
+    user_token: ""
+    workspace_url: https://9arms.slack.com
+    default_channel: sidekicks-noti
+    default_user: UCGN7BCUD
+    notify_user: true
+    notifications:
+      channel: "#sidekicks-noti"
+      skills:
+        sidekicks-jira-autopilot: "#jira-shp"
+        sidekicks-jira-connector: "#jira-shp"
+        sidekicks-jira-footprint: "#jira-shp"
+        sidekicks-jira-investigate: "#jira-shp"
+        sidekicks-jira-kanban: "#jira-shp"
+        sidekicks-jira-loop-engineer: "#jira-shp"
+        sidekicks-jira-my-work: "#jira-shp"
+        sidekicks-jira-ready-gate: "#jira-shp"
+        sidekicks-jira-subtask-planner: "#jira-shp"
+        sidekicks-get-jira-done: "#jira-shp"
+        sidekicks-is-jira-done: "#jira-shp"
+        sidekicks-get-things-done: "#sidekicks-noti"
+        sidekicks-get-plan-done: "#sidekicks-noti"

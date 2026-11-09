@@ -1,0 +1,11 @@
+-- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Generate incident-specific SELECTs after schema inspection. Capture actual target records early:
+-- 1. Map named municipality to actual system SID, then resolve unique payer entity within it.
+-- 2. Pin exact invoice UUIDs/numbers/periods/tax years and linked transaction/QR/mapping keys.
+-- 3. Check real statuses, receipt_id, printing, receipt-transaction links and saved bank refs+tenant.
+-- 4. Inspect payload layout, fee labels/current+pending configuration and utility billing model.
+-- 5. Capture dependencies/cascades/triggers/rewrite/RLS/audit columns and actual writer behavior.
+-- Zero existing receipts is N/A for receipt changes; overdue is not automatically paid.
+-- Future due dates alone do not block cancellation. Do not inspect other municipalities.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate verified scoped investigation SELECTs' AS template_status;

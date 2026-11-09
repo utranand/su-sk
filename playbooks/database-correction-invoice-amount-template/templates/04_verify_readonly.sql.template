@@ -1,0 +1,11 @@
+-- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Generate a matching SELECT verifier for EACH generated operation variant.
+-- Assert exact corrected values and complete satang tokens, preserved refs/due dates/tax years,
+-- exact absent cancellation invoice/QR IDs and mapping keys, and zero remaining saved cancellation refs.
+-- Check bank/payment/receipt evidence by saved original refs+tenant after QR deletion.
+-- Compare complete unaffected rows/settings and overall entity row sets to the approved projection.
+-- After COMMIT emit exact distinct invoice IDs and full actual committed hashes for standby recovery.
+-- After dry-run ROLLBACK use a separate original-state verifier, not this expected committed state.
+-- A successful parse/plan is not runtime verification; no mutation is allowed in this file.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact operation-specific after-state SELECTs' AS template_status;

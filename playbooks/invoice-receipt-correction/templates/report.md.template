@@ -1,0 +1,41 @@
+# <CARD_KEY> — <ENTITY_TYPE> <ENTITY_UUID>
+
+State: <PREPARED | DRY_RUN_NOT_RUN | DRY_RUN_PASS_ROLLED_BACK | COMMITTED_VERIFIED | FAILED | OUTCOME_UNKNOWN | RESTORED_VERIFIED>
+Observed at: <TIMESTAMP_AND_TIMEZONE>
+Target: <DIRECT_ALIAS>, municipality <MUNICIPALITY>, actual system <SID>, payer <PAYER>
+Playbook: <PLAYBOOK_ID_AND_VERSION>; rules/source/SQL/wrapper digests: <DIGEST_RECORD>
+Workspace: <PARENT_WORKSPACE_RELATIVE_PATH>
+
+## Invoice ID and action list
+
+| Operation | Period | Invoice number | Invoice UUID | Before → intended/observed after | Related QR/mapping effects |
+|---|---|---|---|---|---|
+| <amount/cancellation> | <period> | <number> | <uuid> | <exact fields/values> | <exclusive keys/counts or preserved links> |
+
+## Observed results
+
+| Table/action | Expected count | Actual count or NOT RUN | Evidence |
+|---|---:|---|---|
+| <invoice/transaction/QR update or invoice/QR/mapping delete> | <n> | <n or NOT RUN> | <assertion/readback/removed IDs> |
+
+- Applicable PBR01..06/PAR01..07 and evidence: <MAPPED_RESULTS; mark N/A with reason>
+- Independent concrete-source review: <VERDICT_AND_DIGESTS>
+- Preparation checks: <EXPLAIN_WITHOUT_ANALYZE / TYPED_SELECT / OFFLINE_RESULTS; never call them live dry-run>
+- Actual runtime receipt: <UNIQUE_STDOUT_STDERR_FILES_AND_EXIT_STATUS, or NOT RUN>
+- Actual transaction completion: <ROLLBACK | COMMIT | UNKNOWN | NOT RUN>
+- Same-session verification: <RESULT>
+- Separate fresh connection verification and full-row scope comparison: <RESULT>
+- Preserved financial transactions/receipts/bank/detail/future settings/fiscal years: <RESULT>
+- Removed exact invoice IDs, QR IDs, mapping keys and saved reference absence: <RESULT or N/A>
+- Actual committed after-image hashes and standby restore digest: <RECORD or NOT AVAILABLE>
+- User authorization provenance/action/scope: <CURRENT_GRANT; dry-run/commit/restore separately>
+- Commit concurrency control/quiet window and operator confirmation: <FACTS or NOT ESTABLISHED>
+- Failures, uncertain outcomes, skipped checks and remaining work: <ACTUAL_STATUS>
+
+## User-facing result
+
+<Concise Thai business summary with prominent entity UUID, operations, periods and actual state. No raw SQL in the executive summary. Keep private snapshots local; technical SQL/receipts may be separate labeled attachments.>
+
+## Jira record
+
+<Interactive stage checklist, ID/action footprint link, actual result/receipt attachments, parent/child readiness stages, current requested workflow status and any actual unavailable-transition limitation. A status change is not a Git merge/deployment grant.>

@@ -1,0 +1,10 @@
+# projects/shp-sk/config/skills/sk-aws-kms.yaml — configuration owned by skill 'sk-aws-kms'.
+# Written by `sidekicks config migrate --skill-files`.
+
+aws_kms:
+  nonprod-sg:
+    AWS_KMS_KEY_ID: alias/shph-dev
+    region: ap-southeast-1
+  nonprod-th:
+    AWS_KMS_KEY_ID: alias/shp-nonprod
+    region: ap-southeast-7
