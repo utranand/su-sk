@@ -1,0 +1,5 @@
+name: smart-utilities-local-admin
+remote_source: https://github.com/utranand/smart-utilities-local-admin.git
+branch: chore/repository-setup
+commit: bc0672c3205387a4c147ce752ce7fcbe20e06b03
+overrides: {}

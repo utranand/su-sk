@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-09T18:24:32.418+07:00",
+  "scope": "project",
+  "project": "su-sk",
+  "built_at_commit": null,
+  "services": {
+    "smart-utilities-api": {
+      "path": "projects/su-sk/services/smart-utilities-api",
+      "working_folder": "projects/su-sk/services/smart-utilities-api/src",
+      "service_yaml": "projects/su-sk/services/smart-utilities-api/service.yaml",
+      "remote_source": "https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-api",
+      "branch": "ktb-development",
+      "commit": "b1698df68d69c2ffc944143af85348d9c0787dae",
+      "state": "pulled"
+    },
+    "smart-utilities-citizen-api": {
+      "path": "projects/su-sk/services/smart-utilities-citizen-api",
+      "working_folder": "projects/su-sk/services/smart-utilities-citizen-api/src",
+      "service_yaml": "projects/su-sk/services/smart-utilities-citizen-api/service.yaml",
+      "remote_source": "https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-citizen-api",
+      "branch": "main",
+      "commit": "a3895ad679ec8c0bdbd9f8ea26cc6708801cf29c",
+      "state": "pulled"
+    },
+    "smart-utilities-frontend": {
+      "path": "projects/su-sk/services/smart-utilities-frontend",
+      "working_folder": "projects/su-sk/services/smart-utilities-frontend/src",
+      "service_yaml": "projects/su-sk/services/smart-utilities-frontend/service.yaml",
+      "remote_source": "https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-frontend",
+      "branch": "main",
+      "commit": "04eada18ff058a287a96786d5b48c83f4219cb64",
+      "state": "pulled"
+    },
+    "smart-utilities-local-admin": {
+      "path": "projects/su-sk/services/smart-utilities-local-admin",
+      "working_folder": "projects/su-sk/services/smart-utilities-local-admin/src",
+      "service_yaml": "projects/su-sk/services/smart-utilities-local-admin/service.yaml",
+      "remote_source": "https://github.com/utranand/smart-utilities-local-admin.git",
+      "branch": "chore/repository-setup",
+      "commit": "bc0672c3205387a4c147ce752ce7fcbe20e06b03",
+      "state": "pulled"
+    }
+  }
+}

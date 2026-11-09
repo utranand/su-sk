@@ -1,0 +1,5 @@
+name: smart-utilities-api
+remote_source: https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-api
+branch: ktb-development
+commit: b1698df68d69c2ffc944143af85348d9c0787dae
+overrides: {}

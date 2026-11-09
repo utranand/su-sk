@@ -1,0 +1,2 @@
+# Artifacts index is a derived, git-ignored cache (ARTIFACTS.md + run.json ARE tracked).
+artifacts/index.json

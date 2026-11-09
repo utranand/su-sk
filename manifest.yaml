@@ -1,0 +1,8 @@
+name: su-sk
+remote_source: null
+services:
+  - services/smart-utilities-api
+  - services/smart-utilities-citizen-api
+  - services/smart-utilities-frontend
+  - services/smart-utilities-local-admin
+overrides: {}

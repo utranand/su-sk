@@ -1,0 +1,21 @@
+# behavior-sources.yaml — DERIVED source ledger. Do not hand-edit.
+# A source hash that no longer matches is what makes the document stale.
+"schema_version": 1
+"project": "su-sk"
+"forged_at_commit": "a10d82e5"
+"counts":
+  "ssot": 1
+  "ttsr": 0
+  "floor_pointers": 9
+  "retired": 0
+"sources":
+  -
+    "rel": ".sidekicks/memory/store/projects/su-sk/su-ktb-feature-merge-process.md"
+    "kind": "memory"
+    "sha256": "6d49402605e6577a037dd65c38429e1b18a01c1e42d4a875a29e8e6076fb9f2c"
+  -
+    "rel": "AGENTS.md"
+    "kind": "floor"
+    "sha256": "7060de45a61fe73da7a10797942cb41a658dcbb35e086cdb6f09aba5e05d3463"
+"retired":
+  []
