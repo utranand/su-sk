@@ -38,6 +38,13 @@ In Smart Utilities water fee management (`su-sk`), removing and recreating invoi
 5. **Historical Paid Invoices Immutability (PBR-01):**
    - Preceding rounds (e.g. July/month 7) that are already paid with issued receipts remain 100% untouched.
 
+## Why Handled as an Incident (Application Limitations on Selective Months)
+
+An invoice on a selective past month **cannot** be deleted or recreated through the standard application UI or API endpoints:
+1. **Application Cancellation Guard (`getIsWaterInvoiceCancelable`):** The backend code in `WaterFeeInvoiceService` explicitly restricts cancellation to only the latest active transaction round across the entire municipality. Attempting to cancel any earlier round (such as Month 8 when Month 10 exists) returns `404 NotFoundException('INVOICE_NOT_FOUND')`. Furthermore, the application has no hard `DELETE` endpoint.
+2. **Invoice Number & Due Date Drift:** Creating a bill via the application API (`POST /waterFeeInvoice`) auto-increments to `MAX(invoice_no) + 1` (losing the original invoice identifier) and calculates `payment_due_date = NOW() + 15 days`, violating **PBR-02** (due date extension prohibition for accumulated billing).
+3. **The Incident Resolution:** Playbook `database-correction.water-invoice-recreation` executes the deletion and recreation directly in a guarded atomic transaction using the exact TypeORM SQL queries, while preserving historical invoice numbering, historical due dates, and rolling arrears integrity.
+
 ## Lifecycle & Stage Dispatch
 
 Follow the canonical stage dispatch:
