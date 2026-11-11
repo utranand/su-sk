@@ -19,7 +19,7 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
 | **PBR-05** | **Multi-Channel Satang Synchronization**<br>*(ซิงค์ยอดสตางค์ QR/Barcode ให้ตรงกับค่าธรรมเนียม)* | ⚠️ HIGH | Changes to invoice or transaction fees require atomic synchronization of PromptPay QR and barcode payloads in satang (`garbage_fee_qrcode.qr_code_text`, `barcode_text`) in the same transaction, ensuring payment gateways charge the exact business rate. | `PBR-04` |
 | **PBR-06** | **Unpaid Invoice Cancellation by Guarded Deletion**<br>*(ยกเลิกบิลที่ยังไม่ชำระด้วยการลบ / ห้ามลบบิลที่รับชำระแล้ว)* | ⛔ CRITICAL | Cancel verified unpaid target invoices by **DELETE of exact invoice rows and their exclusive QR/barcode rows and mapping links**; future due dates alone do not block cancellation, with live payment/printing/dependency checks, scoped row-count guards, offline backup, recoverable transaction and explicit per-action approval. Overdue does not mean paid. Never delete paid invoices, receipts or bank records, and never use `invoice_status_2` as a guessed cancellation state. | `PBR-08` |
 | **PBR-07** | **Total Water Amount & Tariff Calculation Invariant (Usage Fee, Meter Maintenance, VAT & Rolling Arrears)**<br>*(สูตรและหลักเกณฑ์การคำนวณยอดเงินค่าน้ำประปา: ค่าใช้น้ำตามขั้นอัตรา/ประเภทผู้ใช้, ค่าบำรุงรักษาตามขนาดมิเตอร์, ภาษีมูลค่าเพิ่ม 7%, และยอดหนี้ค้างชำระยกยอด)* | ⛔ CRITICAL | Water tariff calculations must strictly follow empirical master data (`master_water_usage_fee_rate`, `master_water_meter`, `master_water_type`). Volume usage is strictly $\text{current} - \text{previous}$. Water usage fee is determined by tier boundaries (flat/step rate per municipality tariff); meter maintenance fee is fixed by meter size; VAT is strictly calculated as $\text{ROUND}((\text{water\_fee} + \text{maint\_fee}) \times 7\%, 2)$; total current water fee is $\text{before\_vat} + \text{vat}$; invoice billing integrates any linked garbage fee and rolls forward unpaid previous month arrears per PBR-02. QR/barcode satang must synchronize atomically per PBR-05. | `PBR-07` |
-| **PBR-08** | **Selective Historical Invoice Correction & Incident-Driven Recreation Invariant**<br>*(การแก้ไขและสร้างใบแจ้งหนี้ย้อนหลังเฉพาะรอบเดือนด้วยกระบวนการ Incident / ข้อจำกัดของระบบแอปพลิเคชัน)* | ⛔ CRITICAL | Historical selective-month invoices cannot be cancelled, deleted, or recreated through the standard application UI/API because `getIsWaterInvoiceCancelable` strictly blocks cancellation of non-latest rounds, and API generation auto-increments invoice numbers (`invoice_no` drift) and calculates future due dates (`paymentDueDate = NOW() + 15 days`, violating PBR-02). Therefore, selective historical invoice deletion and recreation must be executed as a guarded database incident using TypeORM-aligned SQL in an atomic transaction that preserves original invoice numbers, maintains original due dates, initializes newly recreated invoices with `status = invoice_status_1` (รอพิมพ์) and `printed_date = NULL` for re-printing, synchronizes QR/barcode satang (PBR-05), and preserves integrated billing (PBR-06). | `PBR-08` |
+| **PBR-08** | **Selective Historical Invoice Correction & Incident-Driven Recreation Invariant**<br>*(การแก้ไขและสร้างใบแจ้งหนี้ย้อนหลังเฉพาะรอบเดือนด้วยกระบวนการ Incident / ข้อจำกัดของระบบแอปพลิเคชัน)* | ⛔ CRITICAL | Historical selective-month invoices cannot be cancelled, deleted, or recreated through the standard application UI/API because `getIsWaterInvoiceCancelable` strictly blocks cancellation of non-latest rounds, and API generation auto-increments invoice numbers (`invoice_no` drift) and calculates future due dates (`paymentDueDate = NOW() + 15 days`, violating PBR-02). Therefore, selective historical invoice deletion and recreation must be executed as a guarded database incident using TypeORM-aligned SQL in an atomic transaction that preserves original invoice numbers, maintains original due dates, initializes newly recreated invoices with `status = invoice_status_1` (รอพิมพ์) and `printed_date = NULL` for re-printing, synchronizes QR/barcode satang (PBR-05), preserves integrated billing (PBR-06), and strictly populates a valid `template_id` and authentic `created_by` user ID (never card keys/placeholders) to prevent backend API 500 crashes during template rendering. | `PBR-08` |
 
 ---
 
@@ -352,5 +352,30 @@ For amount updates, the verified garbage status1 is the eligible unpaid/unprinte
      - **การปรับเป็นสถานะค้างชำระ (Overdue Transition):**
        - *ทางเลือกอัตโนมัติ (Automated Cron Path):* เมื่อบิลถูกสร้างขึ้นใหม่ แม้ว่า `payment_due_date` จะเป็นวันที่ในอดีต ระบบจะปล่อยให้ Cronjob ประจำวัน (`waterFee:update-invoice-overdue-status`) กวาดและปรับสถานะเป็น `invoice_status_4` (**"ค้างชำระ"**) ให้อัตโนมัติในรอบรันประจำวัน
        - *ทางเลือกปรับทันที (Immediate Explicit Overdue State):* ในกรณีที่ผู้ใช้งานหรือเจ้าหน้าที่ประสงค์ให้ระบบแสดงผลบนหน้าจอทันทีว่าเป็นบิลค้างชำระ (เพื่อให้ตรงกับสถานะเดิมก่อนแก้ไขในอดีตทันทีโดยไม่ต้องรอรอบ Cronjob) สามารถกำหนดให้ `status = 'invoice_status_4'` ได้ โดยต้องคงวันครบกำหนดเดิม (`payment_due_date`) ไว้เสมอ เพื่อรักษาเกราะป้องกันการสแกนจ่ายซ้ำของเกตเวย์ธนาคารตามกฎ `PBR-02`
+
+  5. **เงื่อนไขเทมเพลตใบแจ้งหนี้และข้อมูลผู้ลงนาม (Template ID & Authentic Signer Invariant):**
+     - **ความจำเป็นของ `template_id` (Mandatory Active Template UUID):**
+       - ในตาราง `public.water_fee_invoice` คอลัมน์ `template_id` **ต้องไม่เป็น NULL และต้องอ้างอิงไปยัง UUID ที่มีอยู่จริงใน `public.water_invoice_template`** ของเทศบาลนั้นๆ (`sid`)
+       - **เหตุผลทางสถาปัตยกรรม (Architectural Fatal Cause):**
+         - ใน Backend API (`water-fee-invoice.service.ts` ในฟังก์ชัน `getInvoiceDetail`) ระบบจะทำ `LEFT JOIN` เข้ากับ `water_invoice_template` ผ่าน `it.template_id = fi.template_id`
+         - หาก `template_id` เป็น NULL การ Join จะไม่ได้ผล ทำให้ค่า `is_default_main_user_used` กลายเป็น `false` (Falsy)
+         - โค้ดของระบบจะกระโดดเข้าบล็อก `if (!queryInvoiceDetail.isDefaultMainUserUsed)` เพื่อค้นหาข้อมูลผู้ลงนามจากตาราง `public.user` โดยใช้ `u.userid = fi.created_by`
+     - **ข้อห้ามใช้รหัสการ์ดหรือ Placeholder ใน `created_by` (Authentic User Reference Mandatory):**
+       - คอลัมน์ `created_by` และ `updated_by` ใน `water_fee_invoice` **ต้องอ้างอิงรหัสผู้ใช้ (`userid`) ที่มีอยู่จริงในตาราง `public.user` เสมอ (เช่น `'U2025030014'`)**
+       - **ห้ามใส่รหัสการ์ด Jira, ข้อความ Placeholder, หรือสตริงว่าง (เช่น `'SU-10768'`) ในคอลัมน์ `created_by` โดยเด็ดขาด**
+       - หาก `created_by` ไม่มีในตาราง `user` ผลการคิวรี `userDetailQuery` จะได้ค่าเป็น `undefined` และคำสั่ง `userDetailQuery.title` ในโค้ด Backend จะพังทลาย (Crash) ทันทีด้วยข้อผิดพลาด:
+         $$\text{TypeError: Cannot read properties of undefined (reading 'title')}$$
+         ส่งผลให้ API ตอบกลับด้วย **HTTP 500 Internal Server Error** และทำให้หน้าจอเว็บ (`/water/people/[waterId]/invoice/[invoiceId]`) **ไม่สามารถแสดงผลข้อมูลบิลได้ (หน้าจอว่างเปล่า / Blank Page)**
+     - **ข้อมูลลายเซ็นและข้อมูลทางทะเบียน (Signer Metadata & Demographic Alignment):**
+       - ในคำสั่ง INSERT บิลใหม่ จะต้องคัดลอกหรือดึงข้อมูลต่อไปนี้ให้ครบถ้วนสมบูรณ์:
+         - `template_id`: UUID เทมเพลตที่เปิดใช้งานของเทศบาล (จากบิลเดิม หรือจาก `water_invoice_template` ที่ `is_active = true`)
+         - `created_by` / `updated_by`: User ID เจ้าหน้าที่ผู้รับผิดชอบจากตาราง `public.user`
+         - `main_user_fullname`: ชื่อ-นามสกุลผู้ลงนาม (เช่น `'นาย ประภาส พันธ์โพธิ์ทอง'`)
+         - `main_user_position`: ตำแหน่งผู้ลงนาม (เช่น `'เจ้าพนักงานผลิตน้ำประปา'`)
+         - `main_user_signature`: URL ลายเซ็นดิจิทัลของผู้ลงนาม
+         - `meter_zone_name`: รหัสโซนมิเตอร์ (เช่น `'008-สันติ'`)
+         - `ref_keyword`: รหัสอ้างอิงลำดับ (เช่น `'107'`)
+         - `legal_status`: สถานะนิติบุคคล (เช่น `'legal_status_2'`)
+         - ข้อมูลชื่อ-นามสกุลผู้ใช้น้ำ (`title`, `firstname`, `lastname`) ต้องตรงกับตาราง `demographic` จริง (ไม่นำชื่อจากตัวอย่างหรือ template มาใส่)
 
 
