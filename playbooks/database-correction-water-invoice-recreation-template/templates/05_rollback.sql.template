@@ -1,0 +1,17 @@
+-- Playbook database-correction.water-invoice-recreation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Unpaid water invoice removal & new invoice recreation.
+-- Generate complete original-row standby DML recovery from the immutable pre-mutation JSON backup snapshot.
+--
+-- Water invoice removal & recreation recovery invariants:
+-- 1. Delete recreated mapping links from public.water_fee_invoice_transaction.
+-- 2. Delete recreated invoices from public.water_fee_invoice.
+-- 3. Restore original invoices into public.water_fee_invoice with original invoice_id, invoice_no, status, and dates.
+-- 4. Restore original mapping links into public.water_fee_invoice_transaction.
+-- 5. Guard database/SID/water_id and bind exact committed after-state hashes; reject PK conflicts.
+-- 6. Default to ROLLBACK;. Live restore requires separate explicit human authorization.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author full recreated invoice removal and original invoice restoration and bind actual committed after-state';
+END $authoring_only$;
+ROLLBACK;

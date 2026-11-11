@@ -1,0 +1,19 @@
+-- Playbook database-correction.water-meter-reading 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Water meter reading volume adjustment (previous_volume_usage, current_volume_usage, total_volume_usage).
+-- Generate pure read-only verification SELECTs to prove target after-state and original-state invariants on a fresh connection.
+--
+-- Water meter volume verification checks:
+-- 1. Volume Usage & Fee Recalculation Verification:
+--    Verify target public.water_fee_transaction rows:
+--    - previous_volume_usage, current_volume_usage, total_volume_usage match approved figures.
+--    - water_usage_fee, before_total_fee, vat_fee, after_total_fee match approved calculations.
+--    - is_meter_broken = true and meter_broken_remark populated.
+-- 2. Reading Chain Continuity:
+--    Verify strict unbroken sequence across rounds:
+--    - Month N-1 current_volume_usage == Month N previous_volume_usage
+--    - Month N current_volume_usage == Month N+1 previous_volume_usage
+--    - Month N+1 current_volume_usage == Month N+2 previous_volume_usage
+-- 3. Preserved Invariants:
+--    Verify historical paid water rounds and receipts remain 100% untouched.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact water meter volume usage, fee calculations, reading chain continuity, and preserved record verification SELECTs' AS template_status;

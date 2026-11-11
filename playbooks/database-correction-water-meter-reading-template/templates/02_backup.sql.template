@@ -1,0 +1,11 @@
+-- Playbook database-correction.water-meter-reading 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Water meter reading volume adjustment (previous_volume_usage, current_volume_usage, total_volume_usage).
+-- Generate one consistent read-only private full-row JSON snapshot, with timestamp and checksum.
+--
+-- Water meter volume backup requirements:
+-- 1. Export all target water_fee_transaction rows (both target correction months and the subsequent unread chain month) for water_id.
+-- 2. Export owner detail configuration from public.water_fee_detail.
+-- 3. Export rate settings from public.master_water_usage_fee_rate.
+-- Zero DDL; no production backup table (PAR-01). Snapshot must be saved as offline JSON.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate consistent full-row water transaction reading volumes and detail backup SELECTs' AS template_status;

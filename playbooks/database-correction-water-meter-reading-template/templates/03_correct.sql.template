@@ -1,0 +1,43 @@
+-- Playbook database-correction.water-meter-reading 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Water meter reading volume adjustment (previous_volume_usage, current_volume_usage, total_volume_usage).
+-- Generate exact incident SQL; never execute this worksheet directly or reuse prior incident IDs/counts.
+--
+-- Water meter reading correction invariants:
+-- 1. BEGIN one atomic transaction with bounded timeouts and reviewed isolation/locks.
+-- 2. Upfront Assertion Block:
+--    - Verify database is smart_utilities_prod.
+--    - Verify municipality SID and consumer water_id.
+--    - Assert exact target water_fee_transaction count and original reading values.
+--    - Assert preceding round (e.g. Month 7) is paid/immutable (receipt_id IS NOT NULL).
+--    - Fail with RAISE EXCEPTION on ANY discrepancy before DML begins.
+-- 3. Execution steps:
+--    a) UPDATE public.water_fee_transaction
+--       SET previous_volume_usage = <NEW_PREV>,
+--           current_volume_usage = <NEW_CURR>,
+--           total_volume_usage = <NEW_TOTAL>,
+--           water_usage_fee = <NEW_USAGE_FEE>,
+--           before_total_fee = <NEW_BEFORE_FEE>,
+--           vat_fee = <NEW_VAT>,
+--           after_total_fee = <NEW_AFTER_FEE>,
+--           is_meter_broken = true,
+--           meter_broken_remark = '<REMARK>',
+--           remarks = '<CARD_KEY> meter reading volume correction',
+--           updated_date = now(),
+--           updated_by = '<OPERATOR_OR_CARD>'
+--       WHERE transaction_id = '<TARGET_TX_UUID>' AND water_id = '<WATER_ID>';
+--    b) Realign subsequent in-flight / unread transaction:
+--       UPDATE public.water_fee_transaction
+--       SET previous_volume_usage = <NEW_CURR_OF_PRIOR_MONTH>,
+--           updated_date = now()
+--       WHERE transaction_id = '<SUBSEQUENT_TX_UUID>' AND water_id = '<WATER_ID>' AND current_volume_usage IS NULL;
+-- 4. In-transaction Readback & After-state Assertion:
+--    - Assert meter reading chain is strictly continuous:
+--      (Month 7 current == Month 8 previous, Month 8 current == Month 9 previous, Month 9 current == Month 10 previous).
+--    - Assert updated fees, VAT, and total volume match approved figures.
+-- 5. End with ROLLBACK; (mandatory default for dry-run). Live COMMIT requires explicit separate human sign-off.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author and review exact water meter transaction volume updates and sequence realignment guards before live action';
+END $authoring_only$;
+ROLLBACK;

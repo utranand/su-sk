@@ -1,0 +1,53 @@
+-- Playbook database-correction.water-invoice-recreation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Unpaid water invoice removal & new invoice recreation.
+-- Generate exact incident SQL; never execute this worksheet directly or reuse prior incident IDs/counts.
+--
+-- Water invoice removal & recreation invariants:
+-- 1. BEGIN one atomic transaction with bounded timeouts and reviewed isolation/locks.
+-- 2. Upfront Assertion Block:
+--    - Verify database is smart_utilities_prod.
+--    - Verify municipality SID and consumer water_id.
+--    - Assert exact target water_fee_invoice count and unpaid status (receipt_id IS NULL, payment_date IS NULL, printed_date IS NULL).
+--    - Assert underlying water_fee_transaction rows carry corrected volumes and fees.
+--    - Fail with RAISE EXCEPTION on ANY discrepancy before DML begins.
+-- 3. Execution steps in exact dependency order:
+--    a) DELETE old mapping links:
+--       DELETE FROM public.water_fee_invoice_transaction
+--       WHERE invoice_id IN ('<OLD_INVOICE_1>', '<OLD_INVOICE_2>');
+--       (assert deleted count matches expected mapping rows).
+--    b) DELETE target unpaid invoices:
+--       DELETE FROM public.water_fee_invoice
+--       WHERE invoice_id IN ('<OLD_INVOICE_1>', '<OLD_INVOICE_2>') AND water_id = '<WATER_ID>';
+--       (assert deleted count matches target invoices).
+--    c) INSERT recreated fresh invoices into public.water_fee_invoice:
+--       INSERT INTO public.water_fee_invoice (
+--           invoice_id, water_id, water_meter_id, tax_year, invoice_no,
+--           round_year, round_month, water_no, order_no, ref_1, ref_2,
+--           title, firstname, lastname, address_no, moo, alley, road,
+--           village_name, subdistrict_name, district_name, province_name, postcode,
+--           meter_size, payment_due_date, status, sid, created_date, created_by,
+--           remarks, qr_code_text, barcode_text, gated_community
+--       ) VALUES (
+--           '<NEW_INVOICE_UUID_1>', '<WATER_ID>', '<METER_ID>', <TAX_YEAR>, '<NEW_INVOICE_NO_1>',
+--           <ROUND_YEAR>, <ROUND_MONTH_1>, '<WATER_NO>', '<ORDER_NO>', '<NEW_REF1_1>', '<NEW_REF2_1>',
+--           '<TITLE>', '<FIRSTNAME>', '<LASTNAME>', '<ADDR>', <MOO>, '<ALLEY>', '<ROAD>',
+--           '<VILLAGE>', '<SUBDISTRICT>', '<DISTRICT>', '<PROVINCE>', '<POSTCODE>',
+--           '<METER_SIZE>', '<DUE_DATE>', 'invoice_status_1', '<SID>', now(), '<CARD_KEY>',
+--           '<CARD_KEY> invoice recreation', '<NEW_QR_1>', '<NEW_BARCODE_1>', '<GATED>'
+--       );
+--       (Repeat for each target round; assert inserted count).
+--    d) INSERT new mapping links into public.water_fee_invoice_transaction:
+--       INSERT INTO public.water_fee_invoice_transaction (invoice_id, transaction_id, garbage_transaction_id)
+--       VALUES ('<NEW_INVOICE_UUID_1>', '<WATER_TX_1>', '<OPTIONAL_GARBAGE_TX_1>');
+-- 4. In-transaction Readback & After-state Assertion:
+--    - Assert old invoices and mapping links are completely absent.
+--    - Assert new invoices exist with status = 'invoice_status_1', matching total fees and valid QR satang payloads.
+--    - Assert mapping links correctly join new invoices to water and garbage transactions.
+--    - Assert integrated garbage_fee_transaction records remain unmodified.
+-- 5. End with ROLLBACK; (mandatory default for dry-run). Live COMMIT requires explicit separate human sign-off.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author and review exact water invoice removal, fresh invoice creation, and transaction mapping guards before live action';
+END $authoring_only$;
+ROLLBACK;
