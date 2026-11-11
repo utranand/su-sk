@@ -8,7 +8,7 @@
 
 ## Business Rule Inventory (Consolidated)
 
-The business rules below consolidate all domain invariants, payment lifecycle checks, billing model constraints, and fiscal year boundaries into 6 clear, non-redundant rule definitions:
+The business rules below consolidate all domain invariants, payment lifecycle checks, billing model constraints, fiscal year boundaries, and water tariff calculation rules into 7 clear, non-redundant rule definitions:
 
 | Rule ID | Rule Name & Short Thai Name | Severity | Business Invariant | Former Rules Merged |
 |---|---|---|---|---|
@@ -18,6 +18,7 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
 | **PBR-04** | **Multi-Tenant Municipality Payer Disambiguation & Strict Scope Confinement**<br>*(ล็อก Entity UUID และจำกัดขอบเขตตามเทศบาลที่ระบุอย่างเคร่งครัด: ห้ามทำข้ามเทศบาล)* | ⛔ CRITICAL | Customer payer numbers (e.g. `68000977`) are shared across municipalities. All queries and updates must resolve and pin the unique entity UUID (`garbage_id` / `water_id`) and row primary keys. **Municipality Scope Confinement:** When the Jira card assigns a municipality (e.g. `[เกาะสมุย]`), the entire scope of work, investigation, verification (PBR-01..PBR-06), and correction is strictly confined within that municipality. Never evaluate, inspect, or mutate data across other municipalities. | `PBR-03` |
 | **PBR-05** | **Multi-Channel Satang Synchronization**<br>*(ซิงค์ยอดสตางค์ QR/Barcode ให้ตรงกับค่าธรรมเนียม)* | ⚠️ HIGH | Changes to invoice or transaction fees require atomic synchronization of PromptPay QR and barcode payloads in satang (`garbage_fee_qrcode.qr_code_text`, `barcode_text`) in the same transaction, ensuring payment gateways charge the exact business rate. | `PBR-04` |
 | **PBR-06** | **Unpaid Invoice Cancellation by Guarded Deletion**<br>*(ยกเลิกบิลที่ยังไม่ชำระด้วยการลบ / ห้ามลบบิลที่รับชำระแล้ว)* | ⛔ CRITICAL | Cancel verified unpaid target invoices by **DELETE of exact invoice rows and their exclusive QR/barcode rows and mapping links**; future due dates alone do not block cancellation, with live payment/printing/dependency checks, scoped row-count guards, offline backup, recoverable transaction and explicit per-action approval. Overdue does not mean paid. Never delete paid invoices, receipts or bank records, and never use `invoice_status_2` as a guessed cancellation state. | `PBR-08` |
+| **PBR-07** | **Total Water Amount & Tariff Calculation Invariant (Usage Fee, Meter Maintenance, VAT & Rolling Arrears)**<br>*(สูตรและหลักเกณฑ์การคำนวณยอดเงินค่าน้ำประปา: ค่าใช้น้ำตามขั้นอัตรา/ประเภทผู้ใช้, ค่าบำรุงรักษาตามขนาดมิเตอร์, ภาษีมูลค่าเพิ่ม 7%, และยอดหนี้ค้างชำระยกยอด)* | ⛔ CRITICAL | Water tariff calculations must strictly follow empirical master data (`master_water_usage_fee_rate`, `master_water_meter`, `master_water_type`). Volume usage is strictly $\text{current} - \text{previous}$. Water usage fee is determined by tier boundaries (flat/step rate per municipality tariff); meter maintenance fee is fixed by meter size; VAT is strictly calculated as $\text{ROUND}((\text{water\_fee} + \text{maint\_fee}) \times 7\%, 2)$; total current water fee is $\text{before\_vat} + \text{vat}$; invoice billing integrates any linked garbage fee and rolls forward unpaid previous month arrears per PBR-02. QR/barcode satang must synchronize atomically per PBR-05. | `PBR-07` |
 
 ---
 
@@ -210,3 +211,82 @@ For amount updates, the verified garbage status1 is the eligible unpaid/unprinte
 - **PASS for preparation:** complete invoice/charge/QR/mapping scope (or evidenced transaction-only follow-up) is established; all payment, printing, identity and exclusivity checks pass; complete backup/recovery and guarded SQL are reviewed. Runtime approvals remain separate.
 - **HOLD:** any paid/printing/shared-reference/dependency/accounting uncertainty, unsafe recreation/concurrency path, scope/schema/before-state mismatch, unreviewed expansion or missing recoverable original. Future due dates alone are not a hold.
 - **Cancellation completed:** the separately approved action committed, actual receipts and fresh full-state checks prove the complete intended removal including collectible charges, and retained transactions/balance/accounting/settings match the approved projection. An absent invoice, registration or offline review alone is not completion.
+
+---
+
+### PBR-07: Total Water Amount & Tariff Calculation Invariant (Usage Fee, Meter Maintenance, VAT & Rolling Arrears)
+- **ชื่อภาษาไทยสั้น (Short Thai Name):** สูตรและหลักเกณฑ์การคำนวณยอดเงินค่าน้ำประปา: ค่าใช้น้ำตามขั้นอัตรา/ประเภทผู้ใช้, ค่าบำรุงรักษาตามขนาดมิเตอร์, ภาษีมูลค่าเพิ่ม 7%, และยอดหนี้ค้างชำระยกยอด
+- **Business Rationale & Invariants (หลักการทางธุรกิจและกฎการคำนวณ):**
+  การคำนวณยอดเงินค่าน้ำประปาในระบบ Smart Utilities ทั้งในตารางรายการคำนวณ (`water_fee_transaction`) และใบแจ้งหนี้ (`water_fee_invoice`) จะต้องสอดคล้องกับตารางอัตราค่าน้ำหลัก (Master Data) ของแต่ละองค์กรปกครองส่วนท้องถิ่น (`sid`) อย่างเคร่งครัด ห้ามคำนวณด้วยการประมาณการหรือสูตรที่คิดขึ้นเอง
+
+  1. **การคำนวณหน่วยการใช้น้ำ (Total Volume Usage):**
+     $$\text{total\_volume\_usage} = \text{current\_volume\_usage} - \text{previous\_volume\_usage}$$
+     - หน่วยการใช้น้ำต้องเป็นจำนวนเต็มที่ไม่ติดลบ ($\ge 0$)
+     - ความต่อเนื่องของเลขมิเตอร์ (Reading Sequence Continuity): `previous_volume_usage` ของเดือนปัจจุบันจะต้องตรงกับ `current_volume_usage` ของรอบเดือนก่อนหน้าอย่างต่อเนื่อง และ `current_volume_usage` ของเดือนปัจจุบันจะต้องกลายเป็น `previous_volume_usage` ของรอบเดือนถัดไป (รวมถึงรอบที่ยังไม่ได้จดมิเตอร์หรือ In-Flight)
+
+  2. **การคำนวณค่าใช้น้ำประปา (`water_usage_fee`):**
+     - ค่าใช้น้ำประปาถูกกำหนดตามประเภทผู้ใช้น้ำ (`water_fee_type_id` ใน `master_water_usage_fee_type` เชื่อมโยงผ่าน `water_fee_detail` $\to$ `water_meter_detail`) และตารางขั้นอัตรา (`master_water_usage_fee_rate`)
+     - **โครงสร้างอัตราค่าน้ำสำหรับประเภททั่วไป (เช่น เทศบาลตำบลบางหญ้าแพรก `sid = 'S0006'`):**
+       - **ช่วงที่ 1 (1–50 หน่วย):** อัตรา **7.00 บาท/หน่วย**
+       - **ช่วงที่ 2 (51 หน่วยขึ้นไป):** อัตรา **9.00 บาท/หน่วย**
+       - การคิดอัตราตามขั้น (Tier Evaluation): คิดตามขั้นอัตราที่ตกอยู่ตามปริมาณการใช้งานรวม:
+         - หาก $\text{total\_volume\_usage} \le 50$: $\text{water\_usage\_fee} = \text{total\_volume\_usage} \times 7.00$
+         - หาก $\text{total\_volume\_usage} \ge 51$: $\text{water\_usage\_fee} = \text{total\_volume\_usage} \times 9.00$
+       - กรณีไม่ใช้น้ำ ($\text{total\_volume\_usage} = 0$): `is_no_water_consumed = true` และ `water_usage_fee = 0.00`
+
+  3. **การคำนวณค่าบำรุงรักษามิเตอร์ (`meter_maintenance_fee`):**
+     - เป็นค่าธรรมเนียมคงที่รายเดือนตามขนาดของมิเตอร์น้ำ (`meter_size` ใน `master_water_meter` เชื่อมโยงผ่าน `water_meter_detail.meter_id`)
+     - ตารางขนาดมิเตอร์และค่าบำรุงรักษา:
+       - ขนาด 1/2 นิ้ว (`meter_size_1`): **15.00 บาท/เดือน**
+       - ขนาด 3/4 นิ้ว (`meter_size_2`): **20.00 บาท/เดือน**
+       - ขนาด 1 นิ้ว (`meter_size_3`): **25.00 บาท/เดือน**
+       - ขนาด 1 1/2 นิ้ว (`meter_size_4`): **55.00 บาท/เดือน**
+       - ขนาด 2 นิ้ว (`meter_size_5`): **75.00 บาท/เดือน**
+
+  4. **ยอดเงินรวมก่อนภาษีมูลค่าเพิ่ม (`before_total_fee`):**
+     $$\text{before\_total\_fee} = \text{water\_usage\_fee} + \text{meter\_maintenance\_fee}$$
+
+  5. **การคำนวณภาษีมูลค่าเพิ่ม 7% (`vat_fee`):**
+     - คำนวณจากยอดรวมก่อนภาษี คูณด้วยอัตราภาษี (`percent_vat = 7.0` จาก `master_water_type`) ปัดเศษทศนิยม 2 ตำแหน่งตามหลักคณิตศาสตร์:
+     $$\text{vat\_fee} = \text{ROUND}(\text{before\_total\_fee} \times 0.07, 2)$$
+
+  6. **ยอดเงินรวมค่าน้ำสุทธิประจำงวด (`after_total_fee`):**
+     $$\text{after\_total\_fee} = \text{before\_total\_fee} + \text{vat\_fee}$$
+
+  7. **ยอดเรียกเก็บบนใบแจ้งหนี้และการทบยอดหนี้ค้างชำระ (Invoice Total & Rolling Arrears per PBR-02):**
+     - หากมีการผูกเก็บค่าธรรมเนียมขยะรวมในใบแจ้งหนี้ (`garbage_transaction_id` ใน `water_fee_invoice_transaction`):
+       $$\text{current\_month\_charge} = \text{after\_total\_fee} + \text{integrated\_garbage\_fee}$$
+     - หากมีหนี้ค้างชำระจากเดือนก่อนหน้า ยอดหนี้ค้างชำระจะถูกยกยอดมาบวกทบในใบแจ้งหนี้เดือนปัจจุบัน (Rolling Arrears):
+       $$\text{total\_invoice\_amount} = \text{current\_month\_charge} + \text{outstanding\_arrears}$$
+     - สตางค์ใน PromptPay QR Code (`qr_code_text`) และ Barcode (`barcode_text`) จะต้องมีค่าเท่ากับ $\text{ROUND}(\text{total\_invoice\_amount} \times 100)$ สตางค์เสมอ ตามกฎ `PBR-05`
+
+- **Enforcement & Safety Guard Assertions (ข้อบังคับในสคริปต์แก้ไขข้อมูล):**
+  ในคำสั่งแก้ไขข้อมูล (`03_correct.sql`) จะต้องมี Assertion ตรวจสอบความถูกต้องของตัวเลขตามสูตรก่อนการ Commit เสมอ:
+  ```sql
+  -- Assertion: ตรวจสอบสูตรการคำนวณค่าน้ำ ค่าบำรุงรักษา และ VAT
+  if v_total_usage <> (v_curr_usage - v_prev_usage) then
+    raise exception 'HALT (PBR-07): Usage mismatch. Expected % - % = %, got %', 
+      v_curr_usage, v_prev_usage, (v_curr_usage - v_prev_usage), v_total_usage;
+  end if;
+
+  if v_before_fee <> (v_water_fee + v_maint_fee) then
+    raise exception 'HALT (PBR-07): Before fee mismatch. Expected % + % = %, got %',
+      v_water_fee, v_maint_fee, (v_water_fee + v_maint_fee), v_before_fee;
+  end if;
+
+  if v_vat_fee <> round((v_before_fee * 0.07)::numeric, 2) then
+    raise exception 'HALT (PBR-07): VAT mismatch. Expected round(% * 0.07, 2) = %, got %',
+      v_before_fee, round((v_before_fee * 0.07)::numeric, 2), v_vat_fee;
+  end if;
+
+  if v_after_fee <> (v_before_fee + v_vat_fee) then
+    raise exception 'HALT (PBR-07): After fee mismatch. Expected % + % = %, got %',
+      v_before_fee, v_vat_fee, (v_before_fee + v_vat_fee), v_after_fee;
+  end if;
+  ```
+
+- **Verification Checklist (วิธีการตรวจสอบ):**
+  1. **สคริปต์ `01_investigate_readonly.sql`:** ตรวจสอบขนาดมิเตอร์ใน `water_meter_detail` / `master_water_meter` และประเภทอัตราใน `master_water_usage_fee_rate` เพื่อยืนยันฐานอัตราที่ถูกต้องของ Entity เป้าหมาย
+  2. **สคริปต์ `03_correct.sql`:** มี Assertion ดักจับการคำนวณทั้ง 4 ส่วน (`usage`, `water_usage_fee`, `vat_fee`, `after_total_fee`) และตรวจสอบยอดสตางค์ QR/Barcode
+  3. **สคริปต์ `04_verify_readonly.sql`:** คิวรีอ่านกลับค่าที่บันทึก ยืนยันว่าค่าที่ลงตารางตรงกับสูตรคณิตศาสตร์ 100%
+
