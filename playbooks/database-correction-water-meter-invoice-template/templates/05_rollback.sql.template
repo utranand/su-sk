@@ -1,0 +1,17 @@
+-- Playbook database-correction.water-meter-invoice 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Water meter reading correction & unpaid invoice deletion/recreation readiness.
+-- Generate complete original-row standby DML recovery from the immutable pre-mutation JSON backup snapshot.
+--
+-- Water meter recovery invariants:
+-- 1. Restore all original volume readings (previous_volume_usage, current_volume_usage, total_volume_usage) and fees in public.water_fee_transaction.
+-- 2. Restore subsequent in-flight transaction previous_volume_usage to its original reading.
+-- 3. Restore deleted invoices in public.water_fee_invoice with original invoice_id, invoice_no, status, and dates.
+-- 4. Restore deleted mapping links in public.water_fee_invoice_transaction.
+-- 5. Guard database/SID/water_id and bind exact committed after-state hashes; reject PK conflicts.
+-- 6. Default to ROLLBACK;. Live restore requires separate explicit human authorization.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author full water meter transaction volumes, subsequent sequence, and invoice restoration and bind actual committed after-state';
+END $authoring_only$;
+ROLLBACK;

@@ -1,0 +1,24 @@
+-- Playbook database-correction.water-meter-invoice 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Water meter reading correction & unpaid invoice deletion/recreation readiness.
+-- Generate pure read-only verification SELECTs to prove target after-state and original-state invariants on a fresh connection.
+--
+-- Water meter verification checks:
+-- 1. Invoice Absence:
+--    Verify target invoices in public.water_fee_invoice are completely absent (count = 0).
+-- 2. Invoice Mapping Absence:
+--    Verify target invoice links in public.water_fee_invoice_transaction are completely absent (count = 0).
+-- 3. Volume Usage & Fee Recalculation Verification:
+--    Verify target public.water_fee_transaction rows:
+--    - previous_volume_usage, current_volume_usage, total_volume_usage match approved figures.
+--    - water_usage_fee, before_total_fee, vat_fee, after_total_fee match approved calculations.
+--    - is_meter_broken = true and meter_broken_remark populated.
+-- 4. Reading Chain Continuity:
+--    Verify strict unbroken sequence across rounds:
+--    - Month N-1 current_volume_usage == Month N previous_volume_usage
+--    - Month N current_volume_usage == Month N+1 previous_volume_usage
+--    - Month N+1 current_volume_usage == Month N+2 previous_volume_usage
+-- 5. Integrated Garbage Transactions & Paid Water Rounds Preserved:
+--    - Verify linked garbage_fee_transaction rows remain intact and unmodified.
+--    - Verify historical paid water invoices and receipts remain 100% untouched.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact water invoice absence, volume usage, reading chain continuity, and preserved record verification SELECTs' AS template_status;

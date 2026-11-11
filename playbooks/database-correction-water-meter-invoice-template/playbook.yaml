@@ -1,0 +1,74 @@
+schema: sidekicks.playbook/v2
+playbook_id: database-correction.water-meter-invoice
+display_name: Water meter reading and invoice correction authoring contract
+purpose: Prepare current-schema water meter volume correction, sequence alignment, linked unpaid invoice cancellation/deletion, and recreation readiness for water fee transactions using the shared incident execution procedure.
+when_to_use: Use for a verified water meter reading correction request (water_fee_transaction) involving faulty meter adjustments, unit consumption corrections, unpaid water invoice cancellations, or meter volume image updates; garbage fee adjustments use database-correction.invoice-amount or database-correction.invoice-cancellation.
+status: active
+kind: agent
+risk: mutating
+version: 1.0.0
+uses_skills:
+  - sk-jira-connector
+  - sk-database
+  - sk-jira
+playbook_rules_file_ids:
+  - playbook-business-rules.md
+  - playbook-architect-rules.md
+parameters:
+  card:
+    type: string
+    required: true
+    description: Jira incident or subtask key; read its parent and reuse the parent workspace.
+  jira_env:
+    type: string
+    required: false
+    default: su
+    description: Registered Jira alias; verify it belongs to the incident.
+  database_env:
+    type: string
+    required: false
+    default: smart_utilities_prod
+    description: Registered direct database alias; confirm target and tier. This default is not write consent.
+  stage:
+    type: string
+    required: false
+    default: prepare
+    description: prepare, dry-run, commit, or verify. Stage selection never grants live-mutation permission.
+  operation:
+    type: string
+    required: false
+    default: water-meter-invoice
+    description: Specialized authoring contract for water meter reading and invoice correction; garbage adjustments use database-correction.invoice-amount or database-correction.invoice-cancellation.
+  work_item:
+    type: string
+    required: false
+    default: ''
+    description: Reuse supplied work item/run anchors; otherwise derive from the parent card. Never create a separate child workspace.
+  user_guide:
+    type: string
+    required: false
+    default: ''
+    description: Task-specific adjustments within the current rules, exact scope and approval boundaries.
+procedure:
+  - 'Read README.md and the linked canonical incident procedure. Bind {{card}}, {{jira_env}}, {{database_env}}, {{stage}} and {{work_item}}; reuse the parent workspace. Default to preparation and derive this incident scope, never prior IDs/counts. Dispatch by stage under canonical procedure section 1 before any later bullet: prepare authors; dry-run/commit reuse the unchanged reviewed package and original snapshot; verify is read-only, reuses matching existing evidence and never regenerates or rebinds 03/05 or the snapshot. Bind {{operation}} to water-meter-invoice; redirect garbage or unrelated requests to appropriate playbooks before proceeding.'
+  - 'Read all shared business/architect rules (PBR-01..06, PAR-01..07). Follow templates/01_investigate_readonly.sql.template as an authoring contract to inspect scoped live records for water meter readings and water fee invoices: resolve municipality -> SID -> unique entity (water_id) using water_no; inspect previous and current meter volume usages across target and chained rounds; verify unpaid/unprinted state on water_fee_invoice, no electronic receipts in water_fee_receipt, and no bank payments in water_fee_ktb_transaction / ktb_transaction_item.'
+  - 'For stage=prepare only, use templates/02_backup.sql.template to author a consistent complete private backup export of target water_fee_transaction rows, linked water_fee_invoice, water_fee_invoice_transaction links, and owner water_fee_detail configuration with typed recovery checks. Use templates/03_correct.sql.template and templates/05_rollback.sql.template to author full incident-specific guards/DML/recovery in actual dependency order (invoice_transaction links -> invoice deletion -> transaction volume & fee updates -> subsequent round sequence realignment), ensuring integrated garbage transactions remain preserved. Source worksheets must never be executed as generated SQL.'
+  - 'For stage=prepare only, use templates/04_verify_readonly.sql.template to author matching after-state and original-state verification: verify target unpaid invoices are completely absent; verify corrected meter volumes, water fees, and VAT match approved figures; verify strict continuity of meter reading chain across historical, corrected, and subsequent in-flight rounds; verify paid months and integrated garbage transactions remain untouched. Preparation checks, actual dry-run, COMMIT and recovery are separate states; no plan or source template is runtime proof.'
+  - 'Execute the specialized water meter and invoice correction only for the current explicitly requested stage with valid exact-action approval and the canonical atomic receipt/rollback/commit concurrency controls. After a possible COMMIT failure reconcile read-only; never automatically retry or recover.'
+  - 'Use templates/incident_report_th.md.template and templates/rules_verification_footprint.md.template to post exact transaction and invoice IDs/actions (highlighting the volume correction and reading chain alignment), short interactive stage checklists, real per-table results and unique receipts. Refresh the parent registry and show the user the report.'
+required_template_files:
+  - templates/01_investigate_readonly.sql.template
+  - templates/02_backup.sql.template
+  - templates/03_correct.sql.template
+  - templates/04_verify_readonly.sql.template
+  - templates/05_rollback.sql.template
+  - templates/incident_report_th.md.template
+  - templates/rules_verification_footprint.md.template
+human_gate:
+  required: true
+  description: Exact-action authorization is required for each live dry-run, commit and later restore; source contracts and stage values are not consent.
+  before_phase: step-5
+outputs:
+  layout: Use the supplied parent Jira workspace through its supported writer; otherwise resolve playbook run-base. Keep private snapshots and immutable action receipts.
+evidence:
+  required_artifacts: []

@@ -8,7 +8,7 @@
 
 ## Business Rule Inventory (Consolidated)
 
-The business rules below consolidate all domain invariants, payment lifecycle checks, billing model constraints, and fiscal year boundaries into 6 clear, non-redundant rule definitions:
+The business rules below consolidate all domain invariants, payment lifecycle checks, billing model constraints, and fiscal year boundaries into 7 clear, non-redundant rule definitions:
 
 | Rule ID | Rule Name & Short Thai Name | Severity | Business Invariant | Former Rules Merged |
 |---|---|---|---|---|
@@ -18,6 +18,7 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
 | **PBR-04** | **Multi-Tenant Municipality Payer Disambiguation & Strict Scope Confinement**<br>*(ล็อก Entity UUID และจำกัดขอบเขตตามเทศบาลที่ระบุอย่างเคร่งครัด: ห้ามทำข้ามเทศบาล)* | ⛔ CRITICAL | Customer payer numbers (e.g. `68000977`) are shared across municipalities. All queries and updates must resolve and pin the unique entity UUID (`garbage_id` / `water_id`) and row primary keys. **Municipality Scope Confinement:** When the Jira card assigns a municipality (e.g. `[เกาะสมุย]`), the entire scope of work, investigation, verification (PBR-01..PBR-06), and correction is strictly confined within that municipality. Never evaluate, inspect, or mutate data across other municipalities. | `PBR-03` |
 | **PBR-05** | **Multi-Channel Satang Synchronization**<br>*(ซิงค์ยอดสตางค์ QR/Barcode ให้ตรงกับค่าธรรมเนียม)* | ⚠️ HIGH | Changes to invoice or transaction fees require atomic synchronization of PromptPay QR and barcode payloads in satang (`garbage_fee_qrcode.qr_code_text`, `barcode_text`) in the same transaction, ensuring payment gateways charge the exact business rate. | `PBR-04` |
 | **PBR-06** | **Unpaid Invoice Cancellation by Guarded Deletion**<br>*(ยกเลิกบิลที่ยังไม่ชำระด้วยการลบ / ห้ามลบบิลที่รับชำระแล้ว)* | ⛔ CRITICAL | Cancel verified unpaid target invoices by **DELETE of exact invoice rows and their exclusive QR/barcode rows and mapping links**; future due dates alone do not block cancellation, with live payment/printing/dependency checks, scoped row-count guards, offline backup, recoverable transaction and explicit per-action approval. Overdue does not mean paid. Never delete paid invoices, receipts or bank records, and never use `invoice_status_2` as a guessed cancellation state. | `PBR-08` |
+| **PBR-07** | **Demographic Data Integrity & Prohibition of Synthetic Records (Import-Only Invariant)**<br>*(ห้ามสร้างข้อมูลบุคคลเทียมเข้าสู่ฐานข้อมูล: ข้อมูลประชากรต้องมาจากการ Import เท่านั้น / ป้องกันบุคคลที่ไม่มีตัวตนจริง)* | ⛔ CRITICAL | Operational playbooks, incident handlers, and ad-hoc database corrections are **strictly prohibited from executing `INSERT INTO public.demographic`** to create synthetic, dummy, or placeholder citizen entities into production databases. Demographic entities represent verified physical/legal persons in civil registration and **MUST ONLY enter the system through the authorized civil/demographic import pipeline**. If a utility entity references a missing or orphaned `demo_id`, resolution MUST NOT insert a fake person to bypass missing-relation crashes; it must proceed via: (1) importing the verified official citizen record via official municipality demographic import, (2) re-linking to an existing verified citizen record if matched, or (3) hardening application code (frontend optional chaining, backend null handling) to handle missing demographic relations safely. | `PBR-07` |
 
 ---
 
@@ -210,3 +211,36 @@ For amount updates, the verified garbage status1 is the eligible unpaid/unprinte
 - **PASS for preparation:** complete invoice/charge/QR/mapping scope (or evidenced transaction-only follow-up) is established; all payment, printing, identity and exclusivity checks pass; complete backup/recovery and guarded SQL are reviewed. Runtime approvals remain separate.
 - **HOLD:** any paid/printing/shared-reference/dependency/accounting uncertainty, unsafe recreation/concurrency path, scope/schema/before-state mismatch, unreviewed expansion or missing recoverable original. Future due dates alone are not a hold.
 - **Cancellation completed:** the separately approved action committed, actual receipts and fresh full-state checks prove the complete intended removal including collectible charges, and retained transactions/balance/accounting/settings match the approved projection. An absent invoice, registration or offline review alone is not completion.
+
+---
+
+### PBR-07: Demographic Data Integrity & Prohibition of Synthetic Citizen Records (Import-Only Invariant)
+- **ชื่อภาษาไทยสั้น:** ห้ามสร้างข้อมูลบุคคลเทียมเข้าสู่ฐานข้อมูลเด็ดขาด / ข้อมูลประชากรต้องมาจากการ Import อย่างเป็นทางการเท่านั้น / ป้องกันบุคคลที่ไม่มีตัวตนจริง (No-Actual Person Prevention)
+- **Human instruction — 11 November 2026:** "never adding new demographic record to prevent no-actual person into the database, since this record must be imported into the system only."
+
+#### Core Principle & Invariant (หลักการและความถูกต้องของข้อมูล)
+1. **ห้ามสร้างหรือ Insert แถวข้อมูลบุคคลใหม่ (`public.demographic`) ขึ้นมาเองโดยเด็ดขาด (Prohibition of Synthetic Demographic Records):**
+   - Playbooks, operational scripts, incident handlers, และคำสั่งแก้ไขฐานข้อมูลทุกประเภท **ห้ามรันคำสั่ง `INSERT INTO public.demographic`** เพื่อสร้างข้อมูลบุคคลสังเคราะห์ (Synthetic/Mock/Placeholder Entities เช่น "ผู้ใช้น้ำ 69000782") หรือใส่ข้อมูลที่ไม่มีตัวตนจริง (No-Actual Person) ลงในฐานข้อมูล Production เพื่อแก้ปัญหาหน้าจอ Error, เลี่ยงบั๊กของระบบ, หรือแก้ปัญหาคีย์กำพร้า
+2. **ข้อมูลบุคคลต้องมาจากการนำเข้าอย่างเป็นทางการเท่านั้น (Import-Only Invariant):**
+   - ข้อมูลในตาราง `public.demographic` เป็นข้อมูลระเบียนราษฎร์และประชากรที่มีผลทางกฎหมายและการคุ้มครองข้อมูลส่วนบุคคล (PDPA)
+   - ข้อมูลจะต้องเข้าสู่ระบบผ่านกระบวนการ **Import ข้อมูลอย่างเป็นทางการ (Official Civil/Demographic Import Pipeline)** จากองค์กรปกครองส่วนท้องถิ่น (อปท.) หรือฐานข้อมูลทะเบียนราษฎร์กรมการปกครอง (DOPA) เท่านั้น เพื่อรับประกันว่าบุคคลทุกคนในฐานข้อมูลมีตัวตนอยู่จริงและมีเลขประจำตัวประชาชนที่ถูกต้อง
+3. **การป้องกันปัญหาบุคคลจำลอง / ประชากรผี (Ghost Citizen Prevention):**
+   - การ Insert ข้อมูลประชากรเทียมลงในฐานข้อมูล Production ส่งผลกระทบต่อ:
+     - ความถูกต้องของฐานข้อมูลประชากรภาครัฐ
+     - การกระทบยอดทางสถิติและภาษีขององค์กรปกครองส่วนท้องถิ่น
+     - การสืบค้นประวัติบุคคลในระบบบูรณาการ (Cross-Service Integration)
+     - เสี่ยงต่อการนำข้อมูลเทียมไปผูกกับทรัพย์สินหรือใบเสร็จรับเงินที่ผิดกฎหมาย
+
+#### Resolution Matrix for Missing / Orphaned `demo_id` (แนวทางปฏิบัติเมื่อพบข้อมูลคีย์กำพร้า)
+เมื่อเกิดอุบัติการณ์ที่ข้อมูลผู้ใช้น้ำ (`water_fee_detail`) หรือผู้ชำระค่าขยะ (`garbage_payer` / `garbage_fee_detail`) อ้างอิง `demo_id` ที่ไม่มีอยู่จริงในตาราง `demographic`:
+- **แนวทางที่ 1 (Official Demographic Import):** นำเข้าข้อมูลประชากรของประชาชนตัวจริงเข้าสู่ระบบผ่านกระบวนการ Import ข้อมูลทะเบียนราษฎร์ตามขั้นตอนมาตรฐานของท้องถิ่น
+- **แนวทางที่ 2 (Re-link to Verified Citizen):** หากตรวจสอบพบว่าประชาชนตัวจริงมีข้อมูลอยู่ในตาราง `demographic` อยู่แล้วภายใต้ `demo_id` อื่น (ยืนยันจากเลขบัตรประชาชน `id_no` หรือข้อมูลโฉนด/ทะเบียนบ้าน) ให้อนุมัติทำการ Re-link ปรับปรุงค่า `water_fee_detail.demo_id` หรือ `garbage_fee_detail.demo_id` ให้ชี้ไปยัง `demo_id` ของบุคคลตัวจริง
+- **แนวทางที่ 3 (Application Hardening):** ทำการแก้ไขโค้ดโปรแกรมในระดับ Application (Frontend ใส่ Optional Chaining `?.` และ Backend ปรับปรุง Null-safe DTO Mapping) เพื่อให้หน้าจอไม่แครช (Graceful Handling) เมื่อพบข้อมูลประชากรเป็น Null
+- **สิ่งที่เป็นข้อห้ามเด็ดขาด:** **ห้ามใช้คำสั่ง DML `INSERT INTO demographic` ด้วยข้อมูลบุคคลจำลอง เพื่อปลดบล็อกหน้าจอโดยเด็ดขาด**
+
+#### PBR-07 Verification Checklist (วิธีการตรวจสอบความปลอดภัย)
+1. **ตรวจสอบสคริปต์ Playbook (`*.sql`):** ยืนยันว่าไม่มีคำสั่ง `INSERT INTO public.demographic` หรือคำสั่งสร้าง record จำลองในตาราง `demographic` อยู่ในสคริปต์
+2. **ตรวจสอบกรณีพบคีย์กำพร้า:** หากพบ `demo_id` ไม่มีใน `demographic` ให้บันทึกเป็นข้อจำกัด (Blocker) และปฏิบัติตามแนวทาง Official Import, Re-link, หรือ Code Hardening เท่านั้น
+3. **PBR-07 Decision Gate:**
+   - **PASS:** ไม่มีการแทรกหรือสร้างข้อมูลบุคคลเทียมลงในฐานข้อมูล
+   - **FAIL / HALT:** มีความพยายามที่จะ INSERT ข้อมูลบุคคลสังเคราะห์เข้าสู่ `public.demographic` สคริปต์ต้องหยุดการทำงานทันที
