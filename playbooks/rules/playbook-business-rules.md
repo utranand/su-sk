@@ -13,7 +13,7 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
 | Rule ID | Rule Name & Short Thai Name | Severity | Business Invariant | Former Rules Merged |
 |---|---|---|---|---|
 | **PBR-01** | **Invoice Lifecycle & Mutation Scope (Unpaid, Unprinted & Demographic Mutability)**<br>*(สถานะบิลและขอบเขตการแก้ไข: แก้ไขเฉพาะบิลที่ยังไม่จ่ายและยังไม่พิมพ์ / ห้ามแตะต้องบิลที่จ่ายแล้ว / แก้ชื่อ-ที่อยู่ได้)* | ⛔ CRITICAL | Financial amount fields (`garbage_fee`, `payment_amount`, QR satang) are **strictly immutable** once paid (`receipt_id IS NOT NULL`) or printed (`printed_date IS NOT NULL`). Rate adjustments apply **ONLY to unprinted, unpaid bills** (`status = invoice_status_1`, `receipt_id IS NULL`, `printed_date IS NULL`). Historical paid periods with receipts must remain completely untouched. However, non-financial demographic metadata (name, address, tax ID, deed no) **CAN be updated** on printed/paid records. | `PBR-01`, `PBR-05`, `PBR-07`, `PBR-09` |
-| **PBR-02** | **Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability & Due Date Extension)**<br>*(รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือนและการห้ามต่ออายุใบแจ้งยอด)* | ⛔ CRITICAL | **Accumulated billing (ค่าน้ำประปา):** rolling arrears; updates restricted strictly to **current active month only** (cannot modify past months); **NEVER extend due date (`payment_due_date`)** because QR code is stateless and bank checks only expiry + paid status, causing double/overlapped payments.<br>**Non-accumulated billing (ค่าขยะ):** discrete month-by-month; any unpaid unprinted month can be updated; due date extension is permitted. | `PBR-02`, `PBR-10`, `PBR-12` |
+| **PBR-02** | **Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability, Due Date Extension & Two-Tier Architecture)**<br>*(รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือน, การห้ามต่ออายุใบแจ้งยอด, และโครงสร้างบิล 2 ชั้น Assessment vs Payable)* | ⛔ CRITICAL | **Accumulated billing (ค่าน้ำประปา):** rolling arrears; updates restricted strictly to **current active month only**; **NEVER extend due date (`payment_due_date`)** to prevent double payment via stateless bank QR.<br>**Two-Tier Billing Architecture:** Every unpaid historical month MUST maintain an official `water_fee_invoice` as an immutable **Monthly Assessment Statement (ทะเบียนคุมหนี้/หนังสือแจ้งการประเมิน)** for municipal audit and statutory itemized breakdown, while the latest bill serves as the **Current Active Payable Statement (ใบแจ้งหนี้สำหรับชำระเงินที่ทบยอด)**. Payment safety is guaranteed because past bills carry expired due dates (`invoice_status_4`) which bank gateways reject at scan time.<br>**Non-accumulated billing (ค่าขยะ):** discrete month-by-month; any unpaid unprinted month can be updated; due date extension is permitted. | `PBR-02`, `PBR-10`, `PBR-12` |
 | **PBR-03** | **Fiscal Year Cycle & Cross-Year Boundary Lock**<br>*(รอบปีงบประมาณ ต.ค.–ก.ย., การคำนวณ tax_year, และการห้ามแก้ไข/โยกจ่ายข้ามปีงบประมาณ)* | ⛔ CRITICAL | Fiscal year ends **September 30**. Rounds in Oct–Dec have `tax_year = round_year + 1`; rounds in Jan–Sep have `tax_year = round_year`. Public revenues and budgets cannot cross fiscal years. Amounts within a fiscal year (e.g. September) can be modified, but **CANNOT be modified, canceled, or shifted to be paid across into October (the next fiscal year)**. In multi-round adjustments, each round must be pinned strictly to its own `tax_year`. | `PBR-06`, `PBR-11` |
 | **PBR-04** | **Multi-Tenant Municipality Payer Disambiguation & Strict Scope Confinement**<br>*(ล็อก Entity UUID และจำกัดขอบเขตตามเทศบาลที่ระบุอย่างเคร่งครัด: ห้ามทำข้ามเทศบาล)* | ⛔ CRITICAL | Customer payer numbers (e.g. `68000977`) are shared across municipalities. All queries and updates must resolve and pin the unique entity UUID (`garbage_id` / `water_id`) and row primary keys. **Municipality Scope Confinement:** When the Jira card assigns a municipality (e.g. `[เกาะสมุย]`), the entire scope of work, investigation, verification (PBR-01..PBR-06), and correction is strictly confined within that municipality. Never evaluate, inspect, or mutate data across other municipalities. | `PBR-03` |
 | **PBR-05** | **Multi-Channel Satang Synchronization**<br>*(ซิงค์ยอดสตางค์ QR/Barcode ให้ตรงกับค่าธรรมเนียม)* | ⚠️ HIGH | Changes to invoice or transaction fees require atomic synchronization of PromptPay QR and barcode payloads in satang (`garbage_fee_qrcode.qr_code_text`, `barcode_text`) in the same transaction, ensuring payment gateways charge the exact business rate. | `PBR-04` |
@@ -78,8 +78,8 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
 
 ---
 
-### PBR-02: Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability & Due Date Extension)
-- **ชื่อภาษาไทยสั้น (Short Thai Name):** รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือนและการห้ามต่ออายุใบแจ้งยอด
+### PBR-02: Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability, Due Date Extension & Two-Tier Architecture)
+- **ชื่อภาษาไทยสั้น (Short Thai Name):** รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือน, การห้ามต่ออายุใบแจ้งยอด, และโครงสร้างบิล 2 ชั้น (Assessment vs Payable)
 - **Consolidation Note:** รวมกฎเดิม `PBR-02` (Garbage Billing Non-Accumulation), `PBR-10` (Billing Period Editability), และ `PBR-12` (Invoice Due Date Extension Invariant) เข้าด้วยกันเป็นกฎเดียวที่ควบคุมกลไกความแตกต่างระหว่างระบบทบยอดและไม่ทบยอด
 - **Billing Mechanics Comparison (เปรียบเทียบรูปแบบการคิดเงิน):**
   1. **ค่าบริการแบบทบยอด (Accumulated / Rolling Arrears Billing — เช่น ค่าน้ำประปา `water_fee_*`):**
@@ -90,21 +90,38 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
          1) วันหมดอายุ (`payment_due_date`) ว่ายังไม่หมดอายุใช่ไหม
          2) สถานะการชำระเงิน (Paid Status) ว่า Reference นี้จ่ายไปแล้วหรือยัง
        - ธนาคารไม่รู้ว่ายอดหนี้ของบิลเก่าได้ถูกยกยอดไปใส่ในบิลเดือนถัดไปแล้ว หากมีการต่ออายุบิลเก่า ธนาคารจะเห็นว่าบิลเก่ายังไม่หมดอายุและยังไม่จ่าย จึงอนุญาตให้ตัดเงินได้ทั้งบิลเก่าและบิลใหม่ ทำให้เกิด **"การชำระเงินซ้ำซ้อน (Double Payment)"** หรือ **"ยอดชำระเหลื่อมทับกัน (Overlapped Payment)"** ซึ่งทำให้ระบบกระทบยอด (Reconciliation) ผิดพลาดอย่างรุนแรง
+     - **โครงสร้างสถาปัตยกรรมบิล 2 ชั้น ในระบบทบยอด (Two-Tier Billing Architecture in Accumulated Billing):**
+       *หลักการทางธุรกิจ:* แม้ว่าระบบจะมีการทบยอดหนี้ค้างไปยังบิลเดือนล่าสุด (เช่น เดือน 9 รวมยอดหนี้ของเดือน 8 ไปแล้ว) **ระบบจำเป็นต้องมีและคงไว้ซึ่งเรคคอร์ดใบแจ้งหนี้ (`water_fee_invoice`) แยกของแต่ละเดือนที่ค้างชำระอย่างสมบูรณ์** (ไม่ใช่มีแค่บิลเดือนล่าสุดเพียงใบเดียว) โดยมีเหตุผลและสถาปัตยกรรม 2 ชั้นดังนี้:
+       
+       **ชั้นที่ 1: ทะเบียนคุมหนี้และหนังสือแจ้งการประเมินรายเดือน (Monthly Assessment Statement / ทะเบียนคุมลูกหนี้รายงวด):**
+       - **การรับรู้รายได้และการตรวจสอบบัญชีภาครัฐ (Public Revenue Recognition & Audit Trail):** ตามระเบียบกระทรวงมหาดไทยว่าด้วยการรับเงิน การเบิกจ่ายเงิน การฝากเงิน การเก็บรักษาเงิน และการตรวจเงินขององค์กรปกครองส่วนท้องถิ่น เทศบาลต้องมีทะเบียนคุมลูกหนี้และหนังสือแจ้งการประเมินภาษี/ค่าธรรมเนียมสำหรับทุกรอบเดือนที่มีการให้บริการ ใบแจ้งหนี้ของเดือนเดิม (เช่น เดือน 8 `08000905`) ทำหน้าที่เป็น **"หนังสือแจ้งการประเมินรายเดือน (Assessment Notice)"** หากไม่มีใบแจ้งหนี้ของเดือน 8 จะเกิดช่องโหว่ทางบัญชี (Audit Hole) ทำให้รายงานลูกหนี้ค้างชำระประจำงวดของเทศบาลขาดเอกสารอ้างอิงทางกฎหมาย
+       - **การแจกแจงหน่วยการใช้และสิทธิผู้บริโภค (Itemized Historical Consumption Breakdown):** ประชาชนมีสิทธิ์ตรวจสอบประวัติการใช้น้ำและรายละเอียดค่าธรรมเนียมของแต่ละเดือนแยกกัน (เช่น เดือน 8 ใช้น้ำ 200 หน่วย = 2,042.05 บาท vs เดือน 9 ใช้น้ำ 120 หน่วย = 1,171.65 บาท) ใบแจ้งหนี้ประจำเดือนเดิมทำหน้าที่เป็น Statement แสดงรายละเอียดที่มาของยอดหนี้อย่างโปร่งใส หากมีข้อพิพาทหรือกระบวนการทางกฎหมาย เทศบาลต้องใช้ใบแจ้งหนี้ของงวดนั้นเป็นหลักฐาน
+       
+       **ชั้นที่ 2: ใบแจ้งหนี้สำหรับชำระเงินรอบปัจจุบัน (Current Active Payable Bill with Rolling Arrears):**
+       - **เครื่องมือรวบรวมยอดชำระเดี่ยว (Consolidated Payment Vehicle):** ใบแจ้งหนี้ของเดือนล่าสุด (เช่น เดือน 9 `09000531`) ทำหน้าที่รวบรวมยอดหนี้ค้างชำระยกยอด (Arrears จากเดือน 8) + ยอดค่าบริการของเดือนปัจจุบัน เข้าเป็นยอดเรียกเก็บก้อนเดียว (3,213.70 บาท) เพื่อสร้าง PromptPay QR Code เพียงหนึ่งเดียว ประชาชนจึงสามารถสแกนจ่ายเงินครั้งเดียวครบทุกยอดค้าง
+       - **การตัดชำระหนี้พร้อมกันแบบปรมาณู (Atomic Multi-Month Receipt Settlement):** เมื่อประชาชนสแกนชำระเงินผ่าน QR Code ของเดือนล่าสุดสำเร็จ เกตเวย์จะสร้างใบเสร็จรับเงินใบเดียว (`water_fee_receipt`) แต่จะตัดหนี้ให้กับทุก Transaction ของทุกเดือนที่ผูกไว้ใน `water_fee_invoice_transaction` พร้อมกันในธุรกรรมเดียว
+       
+       **กลไกความปลอดภัยป้องกันการชำระเงินซ้ำซ้อน (Anti-Double Payment via Gateway Due Date Expiry):**
+       - **เหตุใดประชาชนจึงไม่สามารถสแกนจ่ายบิลเดือนในอดีต (เดือน 8) ซ้ำได้ ทั้งที่มีใบแจ้งหนี้อยู่ในระบบ?**
+       - เนื่องจากใบแจ้งหนี้ของเดือนในอดีต (เดือน 8) คงวันครบกำหนดเดิม (`payment_due_date = 2026-08-25`) ซึ่ง**เลยกำหนดชำระไปแล้ว (Overdue / สถานะ `invoice_status_4`)**
+       - เมื่อประชาชนนำ QR Code ของบิลเดือน 8 ไปสแกน เกตเวย์ธนาคาร (KTB Gateway) จะตรวจสอบ `payment_due_date` และปฏิเสธการทำรายการทันที (`บิลเกินกำหนดชำระ ไม่สามารถทำรายการได้`)
+       - ด้วยกลไกนี้ ทำให้ใบแจ้งหนี้เดือน 8 ทำหน้าที่เป็นเพียง **"เอกสารประเมินหนี้/ทะเบียนคุม (Assessment Statement)"** ไม่สามารถนำไปสแกนจ่ายเงินได้อีก จึงขจัดความเสี่ยงจากการจ่ายเงินซ้ำซ้อน (Double Payment) ได้ 100% โดยประชาชนจะสแกนจ่ายได้เฉพาะบิลของเดือนล่าสุด (เดือน 9) ที่ยังไม่หมดอายุเท่านั้น
   2. **ค่าบริการแบบไม่ทบยอด (Non-Accumulated / Discrete Billing — เช่น ค่าธรรมเนียมขยะ `garbage_fee_*`):**
      - **กลไกยอดเดี่ยว:** แต่ละรอบเดือนเป็นเอกเทศจากกัน (Discrete month-by-month) ไม่มียอดหนี้ทบไปรอบถัดไป
      - **การแก้ไขรอบเดือน (Period Editability):** **สามารถแก้ไขรอบเดือนใดก็ได้** ย้อนหลังหลายรอบเดือนได้อย่างอิสระ (ตราบเท่าที่เป็นไปตามกฎ `PBR-01` คือยังไม่จ่ายและยังไม่พิมพ์)
      - **การต่ออายุใบแจ้งยอด (Due Date Extension):** **สามารถต่ออายุหรือขยายวันครบกำหนดชำระได้** เนื่องจากแต่ละบิลเป็นของเดือนนั้น ๆ โดยเฉพาะ ไม่มีการยกยอดหนี้ค้างไปรวมทบกับบิลเดือนถัดไป การขยายเวลาชำระจึงไม่ทำให้เกิดยอดหนี้ซ้ำซ้อนหรือทับซ้อนกับบิลเดือนอื่น
 - **Enforcement & Operational Guardrails (ข้อบังคับในระบบ):**
   - หากเป็นระบบทบยอด (ค่าน้ำประปา):
-    - ใน Safety Guard Assertion ต้องมีคำสั่งตรวจสอบว่ารอบเดือนเป้าหมายเป็นเดือนปัจจุบันเท่านั้น (`round_month = current_month`)
-    - ห้ามมีคำสั่ง UPDATE `payment_due_date` บนตารางค่าน้ำประปา (`water_fee_*`) โดยเด็ดขาด
+    - ใน Safety Guard Assertion ต้องมีคำสั่งตรวจสอบว่ารอบเดือนเป้าหมายเป็นเดือนปัจจุบันเท่านั้น (`round_month = current_month`) เว้นแต่เป็นการแก้ไขผ่านกระบวนการ Incident ที่ได้รับการอนุญาตเฉพาะกรณีตามกฎ `PBR-08`
+    - ห้ามมีคำสั่ง UPDATE `payment_due_date` บนตารางค่าน้ำประปา (`water_fee_*`) เพื่อขยายวันครบกำหนดโดยเด็ดขาด บิลเดือนในอดีตต้องคงวันครบกำหนดเดิมเพื่อรักษาเกราะป้องกันการสแกนจ่ายซ้ำของธนาคาร
+    - ในกรณีที่มีการลบและสร้างบิลใหม่ย้อนหลังตาม `PBR-08` จะต้องสร้างใบแจ้งหนี้ครบทุกรอบเดือนที่ค้างชำระ (เช่น ทั้งเดือน 8 และ เดือน 9) เพื่อรักษาความสมบูรณ์ของทะเบียนคุมหนี้ (Assessment Statements) และสายการทบยอด
   - หากเป็นระบบไม่ทบยอด (ค่าขยะ):
     - อนุญาตให้ระบุแก้ไขหลายเดือนพร้อมกันได้ (เช่น `round_month in (8, 9, 10)` สำหรับค่าขยะ)
     - แต่ละรอบเดือนต้องมี PromptPay QR Code และตัวเลขสตางค์แยกของตนเอง (เช่น 60 บาท = `6000` สตางค์ต่อเดือน) ห้ามนำมารวมเป็นยอดเดียว
 - **Verification Checklist (วิธีการตรวจสอบ):**
-  1. **สคริปต์ `01_investigate_readonly.sql`:** ตรวจสอบประเภทบริการว่าเป็นแบบทบยอดหรือแบบไม่ทบยอด
-  2. **สคริปต์ `03_correct.sql`:** ยืนยันว่าหากเป็นแบบทบยอด มีเงื่อนไขเฉพาะเดือนปัจจุบันและไม่มีการแก้ไข `payment_due_date`
-  3. **เกณฑ์การผ่าน (Expected Result):** บริการแบบทบยอดไม่มีการแก้ไขย้อนหลังข้ามเดือนและไม่มีการต่ออายุบิล; บริการแบบไม่ทบยอดมี QR Code แยกรายเดือนสอดคล้อง 100%
+  1. **สคริปต์ `01_investigate_readonly.sql`:** ตรวจสอบประเภทบริการว่าเป็นแบบทบยอดหรือแบบไม่ทบยอด และตรวจสอบสถานะ `payment_due_date` ของทุกเดือนที่ค้างชำระ
+  2. **สคริปต์ `03_correct.sql`:** ยืนยันว่าหากเป็นแบบทบยอด มีการสร้าง/คงใบแจ้งหนี้ครบทุกงวด โดยบิลอดีตคงวันครบกำหนดเดิมและไม่มีการขยายเวลา, บิลปัจจุบันมี QR Code ที่ทบยอดหนี้ถูกต้อง
+  3. **เกณฑ์การผ่าน (Expected Result):** บริการแบบทบยอดมีใบแจ้งหนี้ครบทุกรอบเดือนตามทะเบียนคุมหนี้, บิลในอดีตหมดอายุไม่สามารถสแกนจ่ายได้, และบิลล่าสุดทบยอดถูกต้อง 100% โดยไม่มีการต่ออายุบิล; บริการแบบไม่ทบยอดมี QR Code แยกรายเดือนสอดคล้อง 100%
 
 ---
 
