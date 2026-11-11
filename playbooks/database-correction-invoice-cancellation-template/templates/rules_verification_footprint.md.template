@@ -3,15 +3,17 @@
 State: <PREPARED | NOT_RUN | DRY_RUN_PASS_ROLLED_BACK | COMMITTED_VERIFIED | FAILED | OUTCOME_UNKNOWN>
 Playbook/version: <ID_VERSION>; direct target/municipality/actualSID/entity: <TARGET>
 
-| Operation | Period | Invoice no. | Invoice UUID | Before → target/observed | QR/mapping effect |
+| Operation | Period | Invoice no. | Invoice UUID | Before → target/observed | Charge transaction UUIDs / QR / mapping effects |
 |---|---|---|---|---|---|
-| <action> | <period> | <number> | <uuid> | <values> | <keys/counts> |
+| <action> | <period> | <number> | <uuid> | <values> | <exact charge UUIDs and per-table keys/counts> |
 
 - PBR01..06 and PAR01..07: <MAPPED_EVIDENCE; N/A_OR_UNKNOWN_EXPLAINED>
 - Expected/actual per-table counts: <COUNTS_OR_NOT_RUN>
 - Source/snapshot/wrapper digests and independent review: <BINDINGS>
 - Exact-action user grant and commit quiet-window/control facts: <PROVENANCE>
 - Actual ROLLBACK/COMMIT marker, raw receipts and fresh verification: <RESULT_OR_NOT_RUN>
+- Owner collection/balance and preserved non-target transactions: <EXACT_TARGET_ABSENCE_AND_APPROVED_REMAINING_PROJECTION>
+- Transaction-only follow-up original linkage/reference evidence and restore scope: <EVIDENCE_OR_NA>
 - Actual committed hashes/standby recovery: <BINDING_OR_UNAVAILABLE>
 - Genuine blockers/remaining action and requested Jira status: <CURRENT_STATE>
 

@@ -6,7 +6,7 @@ when_to_use: Use for a verified amount request; combined requests use database-c
 status: active
 kind: agent
 risk: mutating
-version: 1.1.0
+version: 1.1.1
 uses_skills:
   - sk-jira-connector
   - sk-database

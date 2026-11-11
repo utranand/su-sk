@@ -1,12 +1,12 @@
 schema: sidekicks.playbook/v2
 playbook_id: database-correction.invoice-cancellation
 display_name: Invoice cancellation authoring contract
-purpose: Prepare current-schema cancellation SQL using the shared incident execution procedure.
+purpose: Prepare current-schema complete unpaid invoice, charge-transaction and exclusive QR/mapping removal using the shared incident execution procedure.
 when_to_use: Use for a verified cancellation request; combined requests use database-correction.invoice-receipt-incident.
 status: active
 kind: agent
 risk: mutating
-version: 1.1.0
+version: 1.2.0
 uses_skills:
   - sk-jira-connector
   - sk-database
@@ -51,11 +51,11 @@ parameters:
     description: Task-specific adjustments within the current rules, exact scope and approval boundaries.
 procedure:
   - 'Read README.md and the linked canonical incident procedure. Bind {{card}}, {{jira_env}}, {{database_env}}, {{stage}} and {{work_item}}; reuse the parent workspace. Default to preparation and derive this incident scope, never prior IDs/counts. Dispatch by stage under canonical procedure section 1 before any later bullet: prepare authors; dry-run/commit reuse the unchanged reviewed package and original snapshot; verify is read-only, reuses matching existing evidence and never regenerates or rebinds 03/05 or the snapshot. Bind {{operation}} to cancellation only; redirect combined or mismatched requests to database-correction.invoice-receipt-incident before proceeding, never widen this specialized scope.'
-  - Read all shared business/architect rules. Follow templates/01_investigate_readonly.sql.template as an authoring contract to inspect scoped live records early, resolve the real tenant/entity and prove eligibility and dependencies.
+  - Read all shared business/architect rules. Follow templates/01_investigate_readonly.sql.template as an authoring contract to inspect scoped live records early, resolve the real tenant/entity and prove eligibility and dependencies for exact invoice/charge-transaction/QR/mapping sets; trace owner collection/balance and cron/backfill behavior, including evidenced transaction-only follow-ups.
   - For stage=prepare only, use templates/02_backup.sql.template to author a consistent complete private backup export and typed recovery checks. Use templates/03_correct.sql.template and templates/05_rollback.sql.template to author full incident-specific guards/DML/recovery, with independent review and source digests. Source worksheets must never be executed as generated SQL.
-  - For stage=prepare only, use templates/04_verify_readonly.sql.template to author matching after-state and original-state verification. Preparation checks, actual dry-run, COMMIT and recovery are separate states; no plan or source template is runtime proof.
+  - For stage=prepare only, use templates/04_verify_readonly.sql.template to author matching after-state and original-state verification including canceled charge absence and exact retained collection IDs/balance. Preparation checks, actual dry-run, COMMIT and recovery are separate states; no plan or source template is runtime proof.
   - Execute the specialized operation only for the current explicitly requested stage with valid exact-action approval and the canonical atomic receipt/rollback/commit concurrency controls. After a possible COMMIT failure reconcile read-only; never automatically retry or recover.
-  - Use templates/incident_report_th.md.template and templates/rules_verification_footprint.md.template to post exact invoice IDs/actions, short interactive stage checklists, real per-table results and unique receipts. Refresh the parent registry and show the user the report.
+  - Use templates/incident_report_th.md.template and templates/rules_verification_footprint.md.template to post exact invoice and charge-transaction IDs/actions, short interactive stage checklists, real per-table results and unique receipts. Refresh the parent registry and show the user the report.
 required_template_files:
   - templates/01_investigate_readonly.sql.template
   - templates/02_backup.sql.template

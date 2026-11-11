@@ -1,11 +1,13 @@
--- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-amount1.1.1; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
--- Generate a matching SELECT verifier for EACH generated operation variant.
--- Assert exact corrected values and complete satang tokens, preserved refs/due dates/tax years,
--- exact absent cancellation invoice/QR IDs and mapping keys, and zero remaining saved cancellation refs.
--- Check bank/payment/receipt evidence by saved original refs+tenant after QR deletion.
--- Compare complete unaffected rows/settings and overall entity row sets to the approved projection.
--- After COMMIT emit exact distinct invoice IDs and full actual committed hashes for standby recovery.
--- After dry-run ROLLBACK use a separate original-state verifier, not this expected committed state.
+-- Generate pure matching SELECT verifiers for this amount-only variant; no rows may be deleted.
+-- Assert the SAME invoice/transaction/QR/mapping ID sets remain before and after the amount correction.
+-- Only approved invoice amount/audit fields, transaction fee/audit values and complete final QR/barcode
+-- satang tokens may differ. Preserve references, due dates, tax years, receipts/bank and future settings.
+-- Check payment evidence using saved original refs+tenant while all existing invoice/QR rows remain.
+-- Compare the complete projected after-state and retained rows. Capture actual committed updated-row
+-- hashes for amount recovery only; do not apply cancellation absence/restore checks to this variant.
+-- During a dry-run prove the intended values in-transaction, then literalROLLBACK and a separate fresh
+-- full original-state comparison. After COMMIT require the approved values to persist on a fresh read.
 -- A successful parse/plan is not runtime verification; no mutation is allowed in this file.
-SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact operation-specific after-state SELECTs' AS template_status;
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact amount-only after-state/original-state SELECTs' AS template_status;

@@ -1,0 +1,18 @@
+-- Playbook database-correction.annual-invoice-cancellation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Annual payment (recurring_type_4 / ชำระแบบรายปี).
+-- Generate complete original-row standby DML recovery from the immutable pre-mutation JSON backup snapshot.
+--
+-- Annual payment recovery invariants:
+-- 1. Restore all deleted charge transactions in public.garbage_fee_transaction (up to 12 monthly rows) with original full columns/nulls/timestamps.
+-- 2. Restore exclusive QR in public.garbage_fee_qrcode with original QR payload, barcode, satang token, and bank references.
+-- 3. Restore all mapping rows in public.garbage_fee_qrcode_transaction linking the restored QR to the restored transactions.
+-- 4. Restore the annual invoice in public.garbage_fee_invoice with original invoice_id, number, status, amount, and dates.
+-- 5. Guard database/SID/entity and bind exact committed after-state hashes; reject PK/reference conflicts or newly arrived payments.
+-- 6. Assert restored counts match exactly and the full original collection/balance state is re-established.
+-- 7. Default to ROLLBACK;. Live restore requires separate explicit human authorization.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author full annual invoice, fiscal-year transactions, and QR/mapping recovery and bind actual committed after-state';
+END $authoring_only$;
+ROLLBACK;

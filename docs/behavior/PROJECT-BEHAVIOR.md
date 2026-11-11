@@ -7,7 +7,7 @@
 > **Retired** below. To file a new one: `behavior.py complain "<what went wrong>" --domain <d>`.
 
 
-_Forged at commit `a10d82e5` — 1 SSOT statements, 0 TTSR entries, 2 sources._
+_Forged at commit `9d96a583` — 6 SSOT statements, 0 TTSR entries, 7 sources._
 
 ## Top TTSR
 
@@ -84,7 +84,16 @@ _None recorded._
 
 ### SSOT
 
-_None recorded._
+- **SSOT-gen-2be978ab** — Always add a Jira footprint when working on a su-sk incident
+  - **blocking** · _memory:su-sk-incident-footprint_
+- **SSOT-gen-77b91236** — Cancel unpaid invoices with their corresponding exclusive unpaid charges and QR/barcode mappings
+  - **blocking** · _memory:su-sk-unpaid-invoice-cancellation-method_
+- **SSOT-gen-9c0cd83d** — Register applicable playbooks in Jira descriptions and include their instructions in su-sk readiness checks
+  - **blocking** · _memory:su-sk-incident-playbook-readiness_
+- **SSOT-gen-bdbdf0bb** — smart-utilities-local-admin is a personal implementation plan without Jira tracking
+  - _memory:smart-utilities-local-admin-personal-plan_
+- **SSOT-gen-66792791** — Use smart_utilities_prod as the primary database connection for su-sk
+  - **blocking** · _memory:su-sk-primary-production-database_
 
 ### TTSR — things to stop repeating
 
@@ -100,5 +109,10 @@ Every statement above traces to one of these. A hash change is what makes this d
 
 | source | kind | sha256 |
 |---|---|---|
+| `.sidekicks/memory/store/projects/su-sk/smart-utilities-local-admin-personal-plan.md` | memory | `aec716d2b69f` |
 | `.sidekicks/memory/store/projects/su-sk/su-ktb-feature-merge-process.md` | memory | `6d49402605e6` |
-| `AGENTS.md` | floor | `7060de45a61f` |
+| `.sidekicks/memory/store/projects/su-sk/su-sk-incident-footprint.md` | memory | `04eecdac9173` |
+| `.sidekicks/memory/store/projects/su-sk/su-sk-incident-playbook-readiness.md` | memory | `cb09eff76aa7` |
+| `.sidekicks/memory/store/projects/su-sk/su-sk-primary-production-database.md` | memory | `f93d6d69d6f7` |
+| `.sidekicks/memory/store/projects/su-sk/su-sk-unpaid-invoice-cancellation-method.md` | memory | `479b000a5981` |
+| `AGENTS.md` | floor | `fae985092c04` |

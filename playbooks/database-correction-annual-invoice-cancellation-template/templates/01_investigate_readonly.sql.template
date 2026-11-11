@@ -1,0 +1,33 @@
+-- Playbook database-correction.annual-invoice-cancellation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Annual payment (recurring_type_4 / ชำระแบบรายปี).
+-- Generate pure scoped SELECTs after actual utility/schema inspection; never infer payer uniqueness across municipalities.
+--
+-- Annual payment specific investigation checklist:
+-- 1. Entity & Municipality Resolution:
+--    Resolve municipality -> SID -> unique entity (garbage_id) using payer number (e.g. 69006050);
+--    Confirm gfd.recurring_type = 'recurring_type_4' in public.garbage_fee_detail.
+-- 2. Fiscal Year (tax_year) & Annual Bill Scope:
+--    Pin target fiscal year (e.g. tax_year = 2027 / ปีงบ 70).
+--    Verify exactly 1 annual invoice (public.garbage_fee_invoice) exists for this tax_year.
+-- 3. Linked Fiscal-Year Charge Transactions:
+--    Inspect public.garbage_fee_transaction for this garbage_id and tax_year:
+--    Annual payment cron bundles up to 12 monthly transaction rows (round_month 10..12 of prior calendar year, 1..9 of current year).
+--    All linked transactions belong to the annual invoice via public.garbage_fee_qrcode_transaction.
+--    Verify sum of all linked transaction fees equals the annual invoice payment_amount (and QR satang = amount * 100).
+-- 4. Manual / Outside Payment & Receipt Verification ("ประชาชนมาจ่ายมาแล้ว"):
+--    Verify electronic receipt state in public.garbage_fee_receipt:
+--    - If an electronic receipt exists (receipt_id IS NOT NULL), HALT immediately (PBR-01 immutable financial record).
+--    - If citizen paid via manual counter receipt (ใบเสร็จมือ), confirm no system receipt was generated.
+--    - Verify NO receipt linkage in public.garbage_fee_receipt_transaction (gfr.status <> 'receipt_status_3').
+--    - Verify NO integrated water receipt linkage in public.water_fee_receipt_transaction.
+-- 5. Gateway Bank Evidence:
+--    Check public.ktb_transaction_item with "SID" and "Ref_1" (from garbage_fee_qrcode.ref_1) to prove no online bank payment occurred.
+-- 6. Unpaid & Unprinted Invariants:
+--    Verify status = 'invoice_status_1' (unpaid), receipt_id IS NULL, and printed_date IS NULL.
+-- 7. Owner Collection & Remaining Balance:
+--    Query owner collectible arrears: confirm the 12 transactions are currently collectible, and project that remaining balance
+--    will become 0 (or match verified prior-year arrears) after deletion.
+-- 8. Configuration & Next Generation Pointer:
+--    Inspect garbage_fee_detail.next_invoice_generation; do not alter pointers without explicit instruction.
+SELECT 'AUTHORING_TEMPLATE_ONLY: derive complete scoped annual invoice, 12-month charge transactions, QR/mapping, and receipt investigation SELECTs' AS template_status;

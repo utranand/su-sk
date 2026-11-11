@@ -1,11 +1,13 @@
--- Playbook database-correction.invoice-cancellation1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-cancellation1.2.0; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
--- Generate a matching SELECT verifier for EACH generated operation variant.
--- Assert exact corrected values and complete satang tokens, preserved refs/due dates/tax years,
--- exact absent cancellation invoice/QR IDs and mapping keys, and zero remaining saved cancellation refs.
--- Check bank/payment/receipt evidence by saved original refs+tenant after QR deletion.
--- Compare complete unaffected rows/settings and overall entity row sets to the approved projection.
--- After COMMIT emit exact distinct invoice IDs and full actual committed hashes for standby recovery.
--- After dry-run ROLLBACK use a separate original-state verifier, not this expected committed state.
--- A successful parse/plan is not runtime verification; no mutation is allowed in this file.
-SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact operation-specific after-state SELECTs' AS template_status;
+-- Generate pure matching after-state SELECTs for each exact operation variant and original-state checks.
+-- Require exact approved invoice/charge-transaction/QR UUIDs and mapping keys absent, including saved refs.
+-- Reproduce/exercise the owner-collection/balance query: zero canceled charge IDs; retained IDs/amounts
+-- and total remaining balance equal the approved projection. Invoice/QR absence alone is not completion.
+-- Check bank/receipt and all target dependencies by immutable keys/references+tenant after deletion.
+-- Compare full preserved transaction/invoice/QR/payment/configuration sections; preserve fiscal boundaries.
+-- For transaction-only cleanup, verify earlier invoices/QRs remain absent and only current charge rows differ.
+-- A real ROLLBACK needs separate fresh full original-state comparison. COMMIT needs actual completion tag,
+-- same-session + fresh full after-projection and independent raw-receipt review; emit actual restore binding.
+-- Do not assert browser rendering, external bank response or future cron execution without such evidence.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact removal/collection/balance and full preserved-state SELECTs' AS template_status;

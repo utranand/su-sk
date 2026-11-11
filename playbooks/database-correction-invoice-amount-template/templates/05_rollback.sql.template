@@ -1,12 +1,13 @@
--- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-amount1.1.1; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
 -- Generate complete DML standby recovery from the immutable original full-row snapshot.
--- Restore original QR rows, mapping links and invoice rows in verified dependency order.
+-- Amount-only recovery restores approved original amount/payload/audit values on existing rows.
+-- Do not insert/delete invoice or charge rows; cancellation has its own full-row recovery variant.
 -- Restore original amount/audit fields/nulls/timestamps exactly; never reconstruct or clear history.
 -- Guard current database/tenant/entity, exact expected ID sets and actual committed after-images.
 -- Reject missing/null/duplicate after-hash bindings, reused PKs/references/periods/invoice numbers,
 -- changed related rows and new receipt/bank evidence. No ON CONFLICT overwrite and no backup-table DDL.
--- Assert every INSERT/UPDATE count and exact original state after recovery. Default ROLLBACK.
+-- Assert every UPDATE count and exact original state after recovery. Default ROLLBACK.
 -- Bind only ACTUAL COMMITTED hashes, never dry-run hashes. Any live restore needs fresh exact approval.
 BEGIN;
 DO $authoring_only$ BEGIN

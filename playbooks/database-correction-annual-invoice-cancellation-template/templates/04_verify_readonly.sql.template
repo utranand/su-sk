@@ -1,0 +1,22 @@
+-- Playbook database-correction.annual-invoice-cancellation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Annual payment (recurring_type_4 / ชำระแบบรายปี).
+-- Generate pure read-only verification SELECTs to prove target after-state and original-state invariants on a fresh connection.
+--
+-- Annual payment verification checks:
+-- 1. Invoice Absence:
+--    Verify the target 1 annual invoice (public.garbage_fee_invoice) for tax_year is completely absent.
+-- 2. Transaction Absence Across Entire Fiscal Year:
+--    Verify ALL linked charge transactions (public.garbage_fee_transaction) for tax_year are completely absent (count = 0).
+--    No orphaned monthly transaction rows may remain for this tax_year.
+-- 3. QR and Mapping Absence:
+--    Verify target qrcode_id in public.garbage_fee_qrcode and public.garbage_fee_qrcode_transaction is completely absent.
+-- 4. Owner Collection & Retained Balance:
+--    Execute the live owner-collection query:
+--    - Verify zero collectible charge rows remain for this tax_year.
+--    - Verify total outstanding balance equals 0 (or exactly matches verified prior-year arrears).
+-- 5. Gateway Bank Evidence:
+--    Verify public.ktb_transaction_item by immutable saved Ref_1 and SID to confirm no late bank settlement arrived.
+-- 6. Preserved Invariants:
+--    Verify all prior-year transactions, historical receipts, and owner configuration in public.garbage_fee_detail remain unchanged.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact annual invoice absence, fiscal-year transactions absence, and zero-balance verification SELECTs' AS template_status;

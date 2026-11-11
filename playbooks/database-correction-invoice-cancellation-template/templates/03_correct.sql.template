@@ -1,17 +1,24 @@
--- Playbook database-correction.invoice-cancellation1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-cancellation1.2.0; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
--- Generate complete exact-scope SQL from the canonical SQL contracts, then independently review it.
--- BEGIN with bounded timeouts and appropriate locking/isolation; assert database/tenant/entity/PKs,
--- exact counts, original full hashes, payment/printing, fiscal/configuration and dependencies BEFORE DML.
--- AMOUNT: invoice label + transaction fee + complete final QR/barcode amount token change atomically.
--- CANCELLATION: delete only exact unpaid/unprinted invoice + exclusive mappings + QR/barcode rows;
--- reject shared UUIDs/duplicate payment refs, preserve financial transactions/receipts/bank/settings.
--- Use saved original references for payment checks even after deleting live QR rows.
--- Assert every actual DML row count and capture affected IDs/keys/readbacks with RETURNING/NOTICE.
--- Preserve original audit values, append remarks only where columns exist; no guessed schema/status.
--- Assert after-state and preserved rows. Default ROLLBACK. Live dry-run and COMMIT are separate approvals.
+-- Generate exact incident SQL; never execute this worksheet or reuse prior IDs/counts/permissions.
+-- BEGIN one atomic session with bounded timeouts and reviewed isolation/locks. Assert database/SID/entity,
+-- exact PK/period/tax-year sets and per-table counts, full original rows, unpaid/unprinted/payment state,
+-- exclusive relationships, schema/reference-column inventory, and preserved settings BEFORE any DML.
+-- Delete approved invoice + corresponding exclusively linked unpaid charge transactions + exclusive
+-- QR/barcode/mapping rows in the actual dependency order. Paid/shared/unrelated dependencies are a HALT;
+-- do not delete receipts/bank/accounting links to create eligibility, nor widen to other payer transactions.
+-- For a previously completed invoice/QR removal, require immutable original linkage/reference evidence,
+-- new current payment/dependency guards and exact grant; expect zero changes to already-absent tables.
+-- Use saved original bank refs after live joins disappear. Explicit DELETE predicates include target PKs
+-- plus verified tenant/entity and finite periods; no guessed cancellation status or assumed cascade.
+-- RETURNING/NOTICE + count assertions capture actual invoice/transaction/QR UUIDs and mapping keys.
+-- Assert exact intended after-state: canceled charge IDs absent from collection; retained IDs/fees/balance,
+-- receipts/bank/future settings unchanged except the approved removal. Assess actual job recreation/races.
+-- Live dry-run, COMMIT and later restore each need exact approval; COMMIT needs actual payer quiet-window
+-- confirmation or a separately authorized reviewed control when noncooperating inserts can race.
+-- Keep one-attempt/ON_ERROR_STOP/raw receipts; possible COMMIT error => readonly reconciliation, no retry.
 BEGIN;
 DO $authoring_only$ BEGIN
-  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: generate and review current incident guards/DML; this worksheet is not executable correction SQL';
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author and review exact invoice/charge/QR/mapping guards and DML before any live action';
 END $authoring_only$;
 ROLLBACK;

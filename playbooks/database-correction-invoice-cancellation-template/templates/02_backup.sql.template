@@ -1,10 +1,11 @@
--- Playbook database-correction.invoice-cancellation1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-cancellation1.2.0; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
--- Generate one consistent read-only full-row JSON snapshot for exact scoped rows:
--- invoices, transactions, QR/barcode rows, mapping links, receipts/payment links,
--- saved tenant/reference bank matches, detail and relevant fee/future settings.
--- Preserve every column/null/enum/JSON/timestamp and capture observed_at plus checksum.
--- Include relationships by pinned keys; do not depend on surviving invoice joins after deletion.
--- Store a private immutable offline snapshot. No production backup tables or DDL.
--- Confirm originals still match before each authorized action; test typed recovery with bounded PK SELECTs.
-SELECT 'AUTHORING_TEMPLATE_ONLY: generate a consistent verified full-row backup SELECT' AS template_status;
+-- Generate one consistent read-only private full-row JSON snapshot, with timestamp and checksum.
+-- Include every approved invoice, unpaid charge transaction, exclusive QR/barcode row and mapping link,
+-- plus retained transactions, receipts/payment/dependency evidence and payer/master/future settings.
+-- Save original bank references so payment checks do not disappear with invoice/QR/transaction deletion.
+-- Preserve every actual column/null/enum/JSON/timestamp; prove typed full-column restore with SELECTs.
+-- For a transaction-only follow-up snapshot current targets and retained state; keep earlier cancellation
+-- evidence separately immutable. Do not replace old snapshots or include earlier deleted rows in this restore.
+-- Zero DDL; no production backup table. Recheck exact rows/schema/reference inventory before live action.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate consistent full-row invoice/charge/QR/mapping backup SELECTs' AS template_status;

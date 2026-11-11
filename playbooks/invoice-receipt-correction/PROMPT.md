@@ -10,7 +10,7 @@ database_env: smart_utilities_prod
 stage: prepare
 operation: from-card
 work_item: <reuse supplied parent feature work item, otherwise derive it>
-user_guide: Ground directly in the scoped live database. Prepare exact invoice ID/action lists, full backup/recovery and a short interactive readiness checklist. Keep results concise.
+user_guide: Ground directly in the scoped live database. Prepare exact invoice and corresponding unpaid charge-transaction ID/action lists, full backup/recovery and a short interactive readiness checklist. Complete cancellation removes the approved collectible charge transactions along with exclusive invoice/QR/mapping data; verify remaining collection IDs/balance and preserve paid/unrelated records. Keep results concise.
 ```
 
 Read the current card, parent, attachments and rules. Derive the municipality, payer, operation, periods, amounts, UUIDs and counts from this incident; no identifier/count/approval from another incident is a default. Reuse the parent's workspace. Produce the complete reviewed package and show the report.

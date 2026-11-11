@@ -6,17 +6,17 @@ Target: <DIRECT_ALIAS>, municipality <MUNICIPALITY>, actual system <SID>, payer 
 Playbook: <PLAYBOOK_ID_AND_VERSION>; rules/source/SQL/wrapper digests: <DIGEST_RECORD>
 Workspace: <PARENT_WORKSPACE_RELATIVE_PATH>
 
-## Invoice ID and action list
+## Invoice and charge-transaction ID/action list
 
-| Operation | Period | Invoice number | Invoice UUID | Before → intended/observed after | Related QR/mapping effects |
+| Operation | Period | Invoice number | Invoice UUID | Before → intended/observed after | Related transaction/QR/mapping effects |
 |---|---|---|---|---|---|
-| <amount/cancellation> | <period> | <number> | <uuid> | <exact fields/values> | <exclusive keys/counts or preserved links> |
+| <amount/cancellation> | <period> | <number> | <uuid> | <exact fields/values> | <exact charge transaction UUIDs and exclusive QR/mapping keys/counts> |
 
 ## Observed results
 
 | Table/action | Expected count | Actual count or NOT RUN | Evidence |
 |---|---:|---|---|
-| <invoice/transaction/QR update or invoice/QR/mapping delete> | <n> | <n or NOT RUN> | <assertion/readback/removed IDs> |
+| <invoice/transaction/QR update or invoice/charge-transaction/QR/mapping delete> | <n> | <n or NOT RUN> | <assertion/readback/removed IDs> |
 
 - Applicable PBR01..06/PAR01..07 and evidence: <MAPPED_RESULTS; mark N/A with reason>
 - Independent concrete-source review: <VERDICT_AND_DIGESTS>
@@ -25,9 +25,11 @@ Workspace: <PARENT_WORKSPACE_RELATIVE_PATH>
 - Actual transaction completion: <ROLLBACK | COMMIT | UNKNOWN | NOT RUN>
 - Same-session verification: <RESULT>
 - Separate fresh connection verification and full-row scope comparison: <RESULT>
-- Preserved financial transactions/receipts/bank/detail/future settings/fiscal years: <RESULT>
-- Removed exact invoice IDs, QR IDs, mapping keys and saved reference absence: <RESULT or N/A>
-- Actual committed after-image hashes and standby restore digest: <RECORD or NOT AVAILABLE>
+- Preserved non-target/paid transactions, receipts/bank/detail/future settings/fiscal years: <RESULT>
+- Removed exact invoice/charge-transaction/QR IDs, mapping keys and saved reference absence: <RESULT or N/A>
+- Owner collection and balance by stage: <DRY_RUN: intended removal/balance verified in-transaction, then original IDs/balance restored afterROLLBACK; COMMIT: fresh persisted canceled-charge absence and exact retained IDs/amounts/balance; NOT_RUN: planned only>
+- Transaction-only follow-up evidence/restore scope: <ORIGINAL_INVOICE_LINKAGE_AND_REFS; RESTORE_ONLY_ROWS_DELETED_BY_THIS_ACTION or N/A>
+- Actual committed after-state/standby binding: <FULL_STATE_DIGEST; REMOVED_ID_ABSENCE + RETAINED_ROW_HASHES for deletion; UPDATED_INVOICE_AFTER_HASHES only where applicable; RESTORE_SQL_DIGEST or NOT AVAILABLE>
 - User authorization provenance/action/scope: <CURRENT_GRANT; dry-run/commit/restore separately>
 - Commit concurrency control/quiet window and operator confirmation: <FACTS or NOT ESTABLISHED>
 - Failures, uncertain outcomes, skipped checks and remaining work: <ACTUAL_STATUS>

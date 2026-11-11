@@ -1,0 +1,15 @@
+-- Playbook database-correction.annual-invoice-cancellation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Annual payment (recurring_type_4 / ชำระแบบรายปี).
+-- Generate one consistent read-only private full-row JSON snapshot, with timestamp and checksum.
+--
+-- Annual payment backup requirements:
+-- 1. Export the 1 annual invoice from public.garbage_fee_invoice for the target tax_year.
+-- 2. Export ALL linked charge transactions from public.garbage_fee_transaction for this tax_year (up to 12 monthly rows).
+-- 3. Export the exclusive QR row from public.garbage_fee_qrcode.
+-- 4. Export all mapping links from public.garbage_fee_qrcode_transaction linking the QR to the fiscal-year transactions.
+-- 5. Export owner detail configuration from public.garbage_fee_detail (recurring_type, next_invoice_generation, fee_type_id).
+-- 6. Save original bank payment references (SID, Ref_1, Ref_2) so bank payment verification remains independent of live joins.
+-- 7. Export retained transaction state from prior fiscal years (if any exist) to prove non-target records are preserved.
+-- Zero DDL; no production backup table (PAR-01). Snapshot must be saved as offline JSON.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate consistent full-row annual invoice, fiscal-year transactions, QR/mapping, and detail backup SELECTs' AS template_status;

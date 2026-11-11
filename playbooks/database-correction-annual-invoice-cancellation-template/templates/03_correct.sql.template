@@ -1,0 +1,39 @@
+-- Playbook database-correction.annual-invoice-cancellation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Annual payment (recurring_type_4 / ชำระแบบรายปี).
+-- Generate exact incident SQL; never execute this worksheet directly or reuse prior incident IDs/counts.
+--
+-- Annual payment mutation invariants:
+-- 1. BEGIN one atomic transaction with bounded timeouts and reviewed isolation/locks.
+-- 2. Upfront Assertion Block:
+--    - Verify database is smart_utilities_prod.
+--    - Verify municipality SID and payer garbage_id.
+--    - Verify recurring_type = 'recurring_type_4'.
+--    - Verify target tax_year (e.g. 2027 / ปีงบ 70).
+--    - Assert exactly 1 invoice row.
+--    - Assert exact count of linked fiscal-year charge transactions (e.g. 12 rows).
+--    - Assert exactly 1 QR row and matching count of mapping rows.
+--    - Assert NO electronic system receipt (receipt_id IS NULL) and NO bank receipt/item.
+--    - Assert invoice status is unpaid ('invoice_status_1') and unprinted (printed_date IS NULL).
+--    - Fail with RAISE EXCEPTION on ANY discrepancy before DML begins.
+-- 3. Delete in exact dependency order:
+--    a) DELETE FROM public.garbage_fee_qrcode_transaction WHERE qrcode_id = ... AND transaction_id IN (...)
+--       (RETURNING mapping keys; assert count matches expected mapping rows).
+--    b) DELETE FROM public.garbage_fee_invoice WHERE invoice_id = ... AND garbage_id = ... AND tax_year = ...
+--       (RETURNING invoice_id; assert count = 1).
+--    c) DELETE FROM public.garbage_fee_qrcode WHERE qrcode_id = ...
+--       (RETURNING qrcode_id; assert count = 1).
+--    d) DELETE FROM public.garbage_fee_transaction WHERE garbage_id = ... AND tax_year = ... AND sid = ...
+--       (RETURNING transaction_id; assert count equals all annual transactions, e.g. 12).
+--       CRITICAL: Deleting all transactions for this tax_year prevents collectible arrears from persisting!
+-- 4. In-transaction Readback & After-state Assertion:
+--    - Assert zero charge transactions remain for this tax_year.
+--    - Assert owner collection query yields 0 collectible rows for this fiscal year.
+--    - Assert remaining balance equals 0 (or verified prior-year arrears).
+--    - Assert preserved prior-year transactions and settings remain untouched.
+-- 5. End with ROLLBACK; (mandatory default for dry-run). Live COMMIT requires explicit separate human sign-off.
+BEGIN;
+DO $authoring_only$ BEGIN
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author and review exact annual invoice, fiscal-year charge transactions, and QR/mapping deletion guards before live action';
+END $authoring_only$;
+ROLLBACK;

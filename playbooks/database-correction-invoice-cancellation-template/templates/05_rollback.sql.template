@@ -1,15 +1,18 @@
--- Playbook database-correction.invoice-cancellation1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-cancellation1.2.0; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
--- Generate complete DML standby recovery from the immutable original full-row snapshot.
--- Restore original QR rows, mapping links and invoice rows in verified dependency order.
--- Restore original amount/audit fields/nulls/timestamps exactly; never reconstruct or clear history.
--- Guard current database/tenant/entity, exact expected ID sets and actual committed after-images.
--- Reject missing/null/duplicate after-hash bindings, reused PKs/references/periods/invoice numbers,
--- changed related rows and new receipt/bank evidence. No ON CONFLICT overwrite and no backup-table DDL.
--- Assert every INSERT/UPDATE count and exact original state after recovery. Default ROLLBACK.
--- Bind only ACTUAL COMMITTED hashes, never dry-run hashes. Any live restore needs fresh exact approval.
+-- Generate complete original-row standby DML recovery from the current action's immutable before-snapshot.
+-- Restore every deleted charge transaction/QR/mapping/invoice row using captured columns/nulls/timestamps,
+-- in the real dependency order (transaction/QR parents before dependent mapping/invoice rows where needed).
+-- For transaction-only follow-up restore only that action's deleted charges; do not recreate invoices/QRs
+-- canceled by an earlier committed action. Never reconstruct accounting, clear history or invent columns.
+-- Guard database/SID/entity, exact ID/period/count sets and ACTUAL COMMITTED full after-state/bindings.
+-- Reject PK/reference/period conflicts, schema/reference-inventory drift, changed retained rows/settings
+-- and new receipt/bank/payment evidence. No ON CONFLICT overwrite or production backup-table DDL.
+-- Assert each actual restore count and exact original transaction/collection/balance/full snapshot afterward.
+-- Default ROLLBACK; a later live restore requires fresh exact-action approval. Automatic rollback of an
+-- uncommitted failed action is immediate and is not this separately gated postcommit recovery procedure.
 BEGIN;
 DO $authoring_only$ BEGIN
-  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: generate full original-row recovery and bind committed after-images; no restore authorized by this worksheet';
+  RAISE EXCEPTION 'AUTHORING_TEMPLATE_ONLY: author full deleted-charge/invoice/QR/mapping recovery and bind actual committed after-state';
 END $authoring_only$;
 ROLLBACK;

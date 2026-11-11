@@ -2,20 +2,40 @@
 # A source hash that no longer matches is what makes the document stale.
 "schema_version": 1
 "project": "su-sk"
-"forged_at_commit": "a10d82e5"
+"forged_at_commit": "9d96a583"
 "counts":
-  "ssot": 1
+  "ssot": 6
   "ttsr": 0
   "floor_pointers": 9
   "retired": 0
 "sources":
   -
+    "rel": ".sidekicks/memory/store/projects/su-sk/smart-utilities-local-admin-personal-plan.md"
+    "kind": "memory"
+    "sha256": "aec716d2b69fa8301bba7dc095ee4786a7e211e7504237b1a5a8f2d1f4d95bed"
+  -
     "rel": ".sidekicks/memory/store/projects/su-sk/su-ktb-feature-merge-process.md"
     "kind": "memory"
     "sha256": "6d49402605e6577a037dd65c38429e1b18a01c1e42d4a875a29e8e6076fb9f2c"
   -
+    "rel": ".sidekicks/memory/store/projects/su-sk/su-sk-incident-footprint.md"
+    "kind": "memory"
+    "sha256": "04eecdac917368f062a3355321253d723315701cabfb86d1129b64a95500a2d9"
+  -
+    "rel": ".sidekicks/memory/store/projects/su-sk/su-sk-incident-playbook-readiness.md"
+    "kind": "memory"
+    "sha256": "cb09eff76aa7e89c04d95ae241e4d948115a20dc2299fb23c231fba9f9707c8c"
+  -
+    "rel": ".sidekicks/memory/store/projects/su-sk/su-sk-primary-production-database.md"
+    "kind": "memory"
+    "sha256": "f93d6d69d6f733f0321f091cd2fda1109dd4940f0ae38f649ed41f7c3cf5908d"
+  -
+    "rel": ".sidekicks/memory/store/projects/su-sk/su-sk-unpaid-invoice-cancellation-method.md"
+    "kind": "memory"
+    "sha256": "479b000a59812f0dd18e3e7828452e10270921f64eeb6c463fd8be6a0e1aca20"
+  -
     "rel": "AGENTS.md"
     "kind": "floor"
-    "sha256": "7060de45a61fe73da7a10797942cb41a658dcbb35e086cdb6f09aba5e05d3463"
+    "sha256": "fae985092c04deb54e7fcbbcbda78ac506d6c2e357e9ebe90266a636096d75b0"
 "retired":
   []

@@ -1,4 +1,4 @@
--- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-amount1.1.1; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
 -- Generate one consistent read-only full-row JSON snapshot for exact scoped rows:
 -- invoices, transactions, QR/barcode rows, mapping links, receipts/payment links,

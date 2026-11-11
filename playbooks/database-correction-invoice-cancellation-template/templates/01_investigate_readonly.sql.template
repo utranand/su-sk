@@ -1,11 +1,13 @@
--- Playbook database-correction.invoice-cancellation1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-cancellation1.2.0; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
--- Generate incident-specific SELECTs after schema inspection. Capture actual target records early:
--- 1. Map named municipality to actual system SID, then resolve unique payer entity within it.
--- 2. Pin exact invoice UUIDs/numbers/periods/tax years and linked transaction/QR/mapping keys.
--- 3. Check real statuses, receipt_id, printing, receipt-transaction links and saved bank refs+tenant.
--- 4. Inspect payload layout, fee labels/current+pending configuration and utility billing model.
--- 5. Capture dependencies/cascades/triggers/rewrite/RLS/audit columns and actual writer behavior.
--- Zero existing receipts is N/A for receipt changes; overdue is not automatically paid.
--- Future due dates alone do not block cancellation. Do not inspect other municipalities.
-SELECT 'AUTHORING_TEMPLATE_ONLY: generate verified scoped investigation SELECTs' AS template_status;
+-- Generate pure scoped SELECTs after actual utility/schema inspection; never infer payer uniqueness.
+-- Resolve municipality -> SID -> entity; pin finite periods/tax years and every invoice/charge/QR UUID/link key.
+-- Show both invoice presence and corresponding collectible charge rows; zero invoices is not a NO-OP.
+-- For already removed invoices, establish original charge/reference ownership from immutable evidence.
+-- Check unpaid/unprinted state, receipt links, bank refs+tenant, integrated-water and overdue relationships.
+-- Reject paid/shared/non-target dependencies; inspect actual FK and non-FK reference-column inventory,
+-- triggers/rewrite/RLS/inheritance/partition behavior and available audit columns; freeze these assumptions.
+-- Trace owner collection/remaining balance and actual cron/backfill/next-generation pointer behavior.
+-- Do not infer cron recreation from created_by, execute jobs, reset pointers or modify rates/settings.
+-- Future due date alone is not a blocker. Confine every financial lookup to the assigned municipality.
+SELECT 'AUTHORING_TEMPLATE_ONLY: derive complete scoped invoice/charge/QR/mapping investigation SELECTs' AS template_status;

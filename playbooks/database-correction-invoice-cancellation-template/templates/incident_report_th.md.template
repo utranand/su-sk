@@ -6,7 +6,9 @@
 
 - รอบบิลและการเปลี่ยนแปลง: <PERIODS_AND_EXACT_ACTIONS>
 - จำนวนที่ตั้งใจ/จำนวนที่พบจริง: <EXPECTED_AND_ACTUAL_PER_TABLE_COUNTS_OR_NOT_RUN>
-- รายการ UUID/เลขที่ใบแจ้งหนี้และผลต่อ QR/Barcode/ความสัมพันธ์: <ID_ACTION_LIST_REFERENCE>
+- รายการ UUID/เลขที่ใบแจ้งหนี้ รายการค่าธรรมเนียม และผลต่อ QR/Barcode/ความสัมพันธ์: <ID_ACTION_LIST_REFERENCE>
+- การลบรายการค่าธรรมเนียมออกจากหน้ารับชำระและยอดคงเหลือที่ถูกต้อง: <CANCELED_CHARGE_IDS_ABSENT_AND_RETAINED_BALANCE>
+- ขอบเขตกู้คืนกรณีลบเฉพาะรายการที่เหลือจากงานเดิม: <RESTORE_ONLY_ROWS_REMOVED_BY_THIS_ACTION_OR_NA>
 - ข้อมูลทางการเงินและการตั้งค่าที่คงไว้: <PRESERVED_SCOPE_AND_EVIDENCE>
 - การอนุมัติแต่ละการดำเนินการและการประสานหยุดทำรายการ: <ACTUAL_AUTHORIZATION_AND_CONCURRENCY_FACTS>
 - ผล ROLLBACK/COMMIT และการตรวจสอบข้อมูลผ่านการเชื่อมต่อใหม่: <ACTUAL_RESULT_OR_NOT_RUN>

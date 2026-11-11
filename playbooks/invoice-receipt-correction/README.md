@@ -1,12 +1,12 @@
 # Utility invoice correction and cancellation
 
-Reusable playbook `database-correction.invoice-receipt-incident` **1.1.0** for `su-sk`.
+Reusable playbook `database-correction.invoice-receipt-incident` **1.2.0** for `su-sk`.
 
 Start with [RUN.md](RUN.md), use the [invocation prompt](PROMPT.md), and follow the detailed [procedure](prompts/task.md). The [SQL contracts](references/sql-contracts.md) define the incident-specific scripts. Both shared rule files in [the rules catalog](../PLAYBOOK_RULES.md) are binding.
 
 ## Outcome
 
-Prepare or execute exactly the operation requested for the current municipality and payer: correct unpaid/unprinted invoice amounts; cancel verified unpaid invoices with their exclusive QR/barcode rows and mappings; investigate receipts without inventing nonexistent receipt work. Preserve paid accounting, financial transactions and unrelated configuration.
+Prepare or execute exactly the operation requested for the current municipality and payer: correct unpaid/unprinted invoice amounts; cancel verified unpaid invoices with their corresponding exclusively linked unpaid charge transactions, exclusive QR/barcode rows and mappings; investigate receipts without inventing nonexistent receipt work. Preserve paid accounting, every non-target transaction and unrelated configuration.
 
 Preparation is the default. A folder invocation, stage parameter, checkbox, old incident approval or CLI `--yes` never grants a fresh production mutation. Recall a valid current scoped user grant; ask only for missing authority, a material scope change or a genuine operational fact.
 
@@ -28,7 +28,7 @@ Preparation is the default. A folder invocation, stage parameter, checkbox, old 
 
 - Resolve municipality code to actual system ID and unique payer UUID; invoice numbers and payer numbers are not globally unique.
 - Amount correction: retain status/receipts/fiscal years, synchronize invoice label, transaction fee and complete final QR/barcode satang token atomically. `150` baht is `15000` satang.
-- Cancellation: delete only verified unpaid/unprinted invoices and exclusive QR/barcode rows/mappings. Overdue is not automatically paid. Future due dates alone do not block. No guessed cancellation enum, implicit cascade or financial-transaction deletion.
+- Cancellation: delete verified unpaid/unprinted invoices, their exclusively linked unpaid charge transactions and exclusive QR/barcode rows/mappings. Verify the canceled charges are absent from owner collection and the remaining IDs/balance match the approved projection. Overdue is not automatically paid. Future due dates alone do not block. No guessed cancellation enum or implicit cascade. Paid/shared/unrelated transaction dependencies are hard stops. Re-ground a transaction-only follow-up from immutable original linkage/reference evidence if the invoice was previously removed; do not restore earlier canceled invoices/QRs as part of that follow-up.
 - Use saved original references for bank checks even after QR deletion. Reject shared QR rows or duplicate references rather than expanding deletion.
 - Never split a transaction across connector calls. Use a reviewed direct atomic route with all result sets and NOTICE/error capture; fail/close immediately on error. Reconcile read-only after a lost COMMIT response.
 - For demonstrated commit races, establish a real payer quiet window or reviewed compatible control. A rollback-only dry-run can proceed without one only when independent review verifies rollback safety and the absence of nontransactional side effects; disclose temporary locking.

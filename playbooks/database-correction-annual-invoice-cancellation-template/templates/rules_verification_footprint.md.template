@@ -1,0 +1,21 @@
+# <CARD_KEY> — <STAGE> annual invoice cancellation evidence footprint
+
+State: <PREPARED | NOT_RUN | DRY_RUN_PASS_ROLLED_BACK | COMMITTED_VERIFIED | FAILED | OUTCOME_UNKNOWN>
+Playbook/version: database-correction.annual-invoice-cancellation 1.0.0; target: <TARGET_DB> / SID: <SID> / entity: <GARBAGE_ID>
+
+| Operation | Fiscal year (tax_year) | Invoice no. | Invoice UUID | Before status / amount | Linked charge transactions / QR / mapping effects |
+|---|---|---|---|---|---|
+| annual-cancellation | <TAX_YEAR> | <INVOICE_NO> | <INVOICE_ID> | <BEFORE_STATE> | <EXACT_CHARGE_UUIDS_AND_MAPPING_COUNTS> |
+
+- PBR01..06 and PAR01..07 compliance: <MAPPED_EVIDENCE; ALL_RULES_ADDRESSED>
+- Annual billing check: recurring_type_4 verified; full fiscal year tax_year confirmed; 1 annual invoice and all linked fiscal-year charge transactions accounted for.
+- Payment & receipt verification: citizen paid manually outside system; verified NO electronic receipt in garbage_fee_receipt, NO bank payment in ktb_transaction_item, and NO receipt transaction linkage.
+- Expected/actual per-table counts: 1 invoice, 1 QR, <MAPPING_COUNT> mappings, <TRANSACTION_COUNT> charge transactions.
+- Source/snapshot/wrapper digests and independent review: <BINDINGS>
+- Exact-action user grant and commit quiet-window/control facts: <PROVENANCE>
+- Actual ROLLBACK/COMMIT marker, raw receipts and fresh verification: <RESULT_OR_NOT_RUN>
+- Owner collection/balance and zero-arrears proof: 100% of fiscal-year charges removed; projected balance = 0 (or verified prior-year arrears).
+- Actual committed hashes and standby recovery: <BINDING_OR_UNAVAILABLE>
+- Genuine blockers/remaining action and requested Jira status: <CURRENT_STATE>
+
+Publish through sk-jira-footprint. Keep dry-run approval separate from commit approval; preserve old receipts.

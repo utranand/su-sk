@@ -4,8 +4,8 @@ Use actual interactive Jira taskList items. Check only observed completed work; 
 
 ## Preparation
 
-- [ ] Exact municipality/system/entity and invoice UUID/number/period/action list verified from live rows.
-- [ ] Applicable unpaid/unprinted/payment, billing/fiscal, exclusive QR/reference and configuration rules pass; N/A receipt work explained.
+- [ ] Exact municipality/system/entity and invoice/charge-transaction UUID/number/period/action list verified from live rows; use immutable original cancellation evidence for already-absent invoice/QR rows.
+- [ ] Applicable unpaid/unprinted/payment, billing/fiscal, exclusive transaction/QR/reference/dependency and configuration rules pass; N/A receipt work explained.
 - [ ] Complete five-file SQL suite, full immutable backup and recovery prepared; matching alternatives distinguished.
 - [ ] Independent review/digests and preparation checks pass; preparation checks are labeled separately from runtime.
 
@@ -14,6 +14,6 @@ Use actual interactive Jira taskList items. Check only observed completed work; 
 - [ ] Exact current dry-run/commit/restore user grant recorded; do not mark from a stage parameter or invent approval.
 - [ ] Applicable concurrency/side-effect controls established; future due dates alone are not a cancellation gate.
 - [ ] Actual per-table runtime counts, values and exact affected/removed IDs captured; no expected count represented as an observed run.
-- [ ] Actual ROLLBACK/COMMIT and same-session plus fresh full-state verification pass; unique report/receipts posted.
+- [ ] Stage-correct verification passes: dry-run proves the intended removal/balance inside its transaction, then literalROLLBACK and fresh full original-state restoration (original charge IDs present again); COMMIT proves persisted target absence and the retained collection IDs/balance from a fresh connection. Unique receipts posted.
 
 Show NOT RUN until an actual approved live mutation occurs. Keep production commit approval open after a dry-run. A later committed restore is a separate action. Remove checks irrelevant to the card's stage; a SQL-preparation child does not require production commit permission to finish its own work.

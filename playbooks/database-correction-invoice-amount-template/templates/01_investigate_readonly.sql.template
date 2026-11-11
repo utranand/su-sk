@@ -1,4 +1,4 @@
--- Playbook database-correction.invoice-amount1.1.0; shared PBR01..06/PAR01..07 apply.
+-- Playbook database-correction.invoice-amount1.1.1; shared PBR01..06/PAR01..07 apply.
 -- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
 -- Generate incident-specific SELECTs after schema inspection. Capture actual target records early:
 -- 1. Map named municipality to actual system SID, then resolve unique payer entity within it.
