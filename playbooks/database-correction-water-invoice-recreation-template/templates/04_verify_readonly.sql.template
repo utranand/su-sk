@@ -1,0 +1,20 @@
+-- Playbook database-correction.water-invoice-recreation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Unpaid water invoice removal & new invoice recreation.
+-- Generate pure read-only verification SELECTs to prove target after-state and original-state invariants on a fresh connection.
+--
+-- Water invoice removal & recreation verification checks:
+-- 1. Old Invoice Absence:
+--    Verify old target invoice_ids in public.water_fee_invoice are completely absent (count = 0).
+-- 2. Old Invoice Mapping Absence:
+--    Verify old invoice links in public.water_fee_invoice_transaction are completely absent (count = 0).
+-- 3. Recreated Invoices Verification:
+--    Verify newly created invoices in public.water_fee_invoice:
+--    - Exist with status = 'invoice_status_1' (unpaid).
+--    - Verify invoice_no conforms to sequence.
+--    - Verify ref_1, ref_2, and qr_code_text satang amounts match approved figures.
+-- 4. Mapping Link Verification:
+--    Verify public.water_fee_invoice_transaction links new invoices to target water transactions and preserved garbage transactions.
+-- 5. Preserved Records Verification:
+--    Verify integrated garbage_fee_transaction and historical paid water invoices/receipts remain 100% untouched.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate exact old invoice absence, recreated invoice verification, mapping linkage, and preserved record verification SELECTs' AS template_status;

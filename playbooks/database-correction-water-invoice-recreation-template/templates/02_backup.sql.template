@@ -1,0 +1,13 @@
+-- Playbook database-correction.water-invoice-recreation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Unpaid water invoice removal & new invoice recreation.
+-- Generate one consistent read-only private full-row JSON snapshot, with timestamp and checksum.
+--
+-- Water invoice removal & recreation backup requirements:
+-- 1. Export all target water_fee_invoice rows to be deleted.
+-- 2. Export all water_fee_invoice_transaction mapping rows linking target invoices to water and garbage transactions.
+-- 3. Export linked water_fee_transaction rows to confirm the underlying fee baseline.
+-- 4. Export linked garbage_fee_transaction rows to preserve integrated municipality billing.
+-- 5. Export owner detail configuration from public.water_fee_detail.
+-- Zero DDL; no production backup table (PAR-01). Snapshot must be saved as offline JSON.
+SELECT 'AUTHORING_TEMPLATE_ONLY: generate consistent full-row target invoices, mapping links, and linked transaction backup SELECTs' AS template_status;

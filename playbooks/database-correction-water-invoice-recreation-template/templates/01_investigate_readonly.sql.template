@@ -1,0 +1,26 @@
+-- Playbook database-correction.water-invoice-recreation 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Unpaid water invoice removal & new invoice recreation.
+-- Generate pure scoped SELECTs after actual utility/schema inspection; never infer payer uniqueness across municipalities.
+--
+-- Water invoice removal & recreation investigation checklist:
+-- 1. Entity & Municipality Resolution:
+--    Resolve municipality -> SID -> unique entity (water_id) using consumer number (water_no, e.g. 68002492);
+--    Confirm recipient address, meter size, and demographic info in public.water_fee_detail.
+-- 2. Target Invoice Eligibility Check (PBR-01, PBR-06):
+--    Inspect target public.water_fee_invoice rows:
+--    - Verify status is unpaid (e.g. 'invoice_status_4' or 'invoice_status_1').
+--    - Verify receipt_id IS NULL and payment_date IS NULL.
+--    - Verify printed_date IS NULL.
+--    - Confirm no online bank payments in public.ktb_transaction_item or public.water_fee_ktb_transaction.
+-- 3. Mapping & Integration Verification:
+--    Inspect public.water_fee_invoice_transaction for target invoices:
+--    - Identify linked water_fee_transaction rows (must already reflect corrected volumes/fees from database-correction.water-meter-reading).
+--    - Identify any linked garbage transactions (garbage_transaction_id) to ensure integrated billing is preserved.
+-- 4. Sequencing & Reference Structure:
+--    - Check latest invoice_no sequence in public.water_fee_invoice for the target round and municipality SID.
+--    - Inspect ref_1 and ref_2 structure to ensure correct derivation for the new invoices.
+-- 5. Rate & PromptPay Payload Pre-calculation (PBR-05):
+--    - Calculate new total amount = water_fee + integrated garbage_fee (if applicable).
+--    - Derive QR text satang payload (|TaxID%0ARef1%0ARef2%0ASatang) and barcode text.
+SELECT 'AUTHORING_TEMPLATE_ONLY: derive complete scoped water invoice removal, mapping links, and invoice recreation SELECTs' AS template_status;

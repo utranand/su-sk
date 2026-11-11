@@ -1,0 +1,19 @@
+-- Playbook database-correction.water-meter-reading 1.0.0; shared PBR01..06/PAR01..07 apply.
+-- Canonical guide: ../../invoice-receipt-correction/references/sql-contracts.md
+-- Domain context: Water meter reading volume adjustment (previous_volume_usage, current_volume_usage, total_volume_usage).
+-- Generate pure scoped SELECTs after actual utility/schema inspection; never infer payer uniqueness across municipalities.
+--
+-- Water meter reading investigation checklist:
+-- 1. Entity & Municipality Resolution:
+--    Resolve municipality -> SID -> unique entity (water_id) using consumer number (water_no, e.g. 68002492);
+--    Confirm recipient address and meter zone in public.water_fee_detail.
+-- 2. Reading Sequence Continuity (Sequential Invariant):
+--    Inspect public.water_fee_transaction for target water_id ordered by to_year, to_month:
+--    - Verify preceding paid round (e.g. Month 7): current_volume_usage, total_volume_usage, and fee. Must be paid/immutable.
+--    - Verify target correction rounds (e.g. Month 8 & Month 9): previous_volume_usage, current_volume_usage, total_volume_usage, fees.
+--    - Verify subsequent unread / in-flight round (e.g. Month 10): previous_volume_usage must currently chain from Month 9 current_volume_usage.
+-- 3. Rate Schedule & Calculation Verification:
+--    Inspect public.master_water_usage_fee_rate or customer tariff rate to verify per-unit rate calculation for new total_volume_usage.
+-- 4. Broken Meter Verification:
+--    Check is_meter_broken, meter_broken_remark, and meter_volume_image in water_fee_transaction.
+SELECT 'AUTHORING_TEMPLATE_ONLY: derive complete scoped water meter reading volume, sequence continuity, and rate calculation SELECTs' AS template_status;
