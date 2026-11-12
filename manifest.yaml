@@ -5,4 +5,5 @@ services:
   - services/smart-utilities-citizen-api
   - services/smart-utilities-frontend
   - services/smart-utilities-local-admin
+  - services/smart-utilities-citizen-frontend
 overrides: {}

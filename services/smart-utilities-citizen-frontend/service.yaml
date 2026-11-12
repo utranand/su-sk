@@ -1,0 +1,5 @@
+name: smart-utilities-citizen-frontend
+remote_source: https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-citizen-frontend
+branch: main
+commit: d4ad9c359db7014057f717b2395fff052c1cf260
+overrides: {}

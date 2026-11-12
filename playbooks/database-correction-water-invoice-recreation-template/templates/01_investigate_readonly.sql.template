@@ -23,4 +23,13 @@
 -- 5. Rate & PromptPay Payload Pre-calculation (PBR-05):
 --    - Calculate new total amount = water_fee + integrated garbage_fee (if applicable).
 --    - Derive QR text satang payload (|TaxID%0ARef1%0ARef2%0ASatang) and barcode text.
+-- 6. Template & Authentic Signer Resolution (PBR-09):
+--    Inspect template and signer configuration in public.water_invoice_template and public.user:
+--    - Retrieve active template_id for municipality SID (WHERE sid = '<SID>' AND is_active = true) or from old target invoice.
+--    - Verify template_id exists in public.water_invoice_template.
+--    - Retrieve authentic municipal officer userid in public.user (e.g. U2025030014) for created_by / updated_by.
+--    - Extract signer metadata: main_user_fullname, main_user_position, main_user_signature.
+--    - Extract consumer demographic fields from public.demographic / public.water_fee_detail:
+--      meter_zone_name, ref_keyword, legal_status, title, firstname, lastname.
+--    - CRITICAL: Never use Jira card keys (e.g. 'SU-10768') in created_by; missing template_id or invalid created_by crashes NestJS getInvoiceDetail with HTTP 500 (TypeError: Cannot read properties of undefined reading 'title').
 SELECT 'AUTHORING_TEMPLATE_ONLY: derive complete scoped water invoice removal, mapping links, and invoice recreation SELECTs' AS template_status;

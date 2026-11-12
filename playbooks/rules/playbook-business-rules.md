@@ -8,17 +8,19 @@
 
 ## Business Rule Inventory (Consolidated)
 
-The business rules below consolidate all domain invariants, payment lifecycle checks, billing model constraints, and fiscal year boundaries into 7 clear, non-redundant rule definitions:
+The business rules below consolidate all domain invariants, payment lifecycle checks, billing model constraints, fiscal year boundaries, water tariff calculation rules, and incident-driven recreation invariants into 9 clear, non-redundant rule definitions:
 
 | Rule ID | Rule Name & Short Thai Name | Severity | Business Invariant | Former Rules Merged |
 |---|---|---|---|---|
-| **PBR-01** | **Invoice Lifecycle & Mutation Scope (Unpaid, Unprinted & Demographic Mutability)**<br>*(สถานะบิลและขอบเขตการแก้ไข: แก้ไขเฉพาะบิลที่ยังไม่จ่ายและยังไม่พิมพ์ / ห้ามแตะต้องบิลที่จ่ายแล้ว / แก้ชื่อ-ที่อยู่ได้)* | ⛔ CRITICAL | Financial amount fields (`garbage_fee`, `payment_amount`, QR satang) are **strictly immutable** once paid (`receipt_id IS NOT NULL`) or printed (`printed_date IS NOT NULL`). Rate adjustments apply **ONLY to unprinted, unpaid bills** (`status = invoice_status_1`, `receipt_id IS NULL`, `printed_date IS NULL`). Historical paid periods with receipts must remain completely untouched. However, non-financial demographic metadata (name, address, tax ID, deed no) **CAN be updated** on printed/paid records. | `PBR-01`, `PBR-05`, `PBR-07`, `PBR-09` |
-| **PBR-02** | **Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability & Due Date Extension)**<br>*(รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือนและการห้ามต่ออายุใบแจ้งยอด)* | ⛔ CRITICAL | **Accumulated billing (ค่าน้ำประปา):** rolling arrears; updates restricted strictly to **current active month only** (cannot modify past months); **NEVER extend due date (`payment_due_date`)** because QR code is stateless and bank checks only expiry + paid status, causing double/overlapped payments.<br>**Non-accumulated billing (ค่าขยะ):** discrete month-by-month; any unpaid unprinted month can be updated; due date extension is permitted. | `PBR-02`, `PBR-10`, `PBR-12` |
+| **PBR-01** | **Invoice Lifecycle & Mutation Scope (Unpaid, Unprinted, Status Flow & Demographic Mutability)**<br>*(สถานะบิลและขอบเขตการแก้ไข: วงจรชีวิตสถานะบิล 5 ขั้น / แก้ไขเฉพาะบิลที่ยังไม่จ่ายและยังไม่พิมพ์ / ห้ามแตะต้องบิลที่จ่ายแล้ว / แก้ชื่อ-ที่อยู่ได้)* | ⛔ CRITICAL | Financial amount fields (`garbage_fee`, `payment_amount`, QR satang) are **strictly immutable** once paid (`receipt_id IS NOT NULL`) or printed (`printed_date IS NOT NULL`). Rate adjustments apply **ONLY to unprinted, unpaid bills** (`status = invoice_status_1`, `receipt_id IS NULL`, `printed_date IS NULL`). Status lifecycle flows from newly created (`invoice_status_1` รอพิมพ์) to printed (`invoice_status_2` รอชำระ), paid (`invoice_status_3` ชำระแล้ว), or overdue (`invoice_status_4` ค้างชำระ via automated cron). Historical paid periods with receipts must remain completely untouched. However, non-financial demographic metadata (name, address, tax ID, deed no) **CAN be updated** on printed/paid records. | `PBR-01`, `PBR-05`, `PBR-07`, `PBR-09` |
+| **PBR-02** | **Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability, Due Date Extension & Two-Tier Architecture)**<br>*(รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือน, การห้ามต่ออายุใบแจ้งยอด, และโครงสร้างบิล 2 ชั้น Assessment vs Payable)* | ⛔ CRITICAL | **Accumulated billing (ค่าน้ำประปา):** rolling arrears; updates restricted strictly to **current active month only**; **NEVER extend due date (`payment_due_date`)** to prevent double payment via stateless bank QR.<br>**Two-Tier Billing Architecture:** Every unpaid historical month MUST maintain an official `water_fee_invoice` as an immutable **Monthly Assessment Statement (ทะเบียนคุมหนี้/หนังสือแจ้งการประเมิน)** for municipal audit and statutory itemized breakdown, while the latest bill serves as the **Current Active Payable Statement (ใบแจ้งหนี้สำหรับชำระเงินที่ทบยอด)**. Payment safety is guaranteed because past bills carry expired due dates (`invoice_status_4`) which bank gateways reject at scan time.<br>**Non-accumulated billing (ค่าขยะ):** discrete month-by-month; any unpaid unprinted month can be updated; due date extension is permitted. | `PBR-02`, `PBR-10`, `PBR-12` |
 | **PBR-03** | **Fiscal Year Cycle & Cross-Year Boundary Lock**<br>*(รอบปีงบประมาณ ต.ค.–ก.ย., การคำนวณ tax_year, และการห้ามแก้ไข/โยกจ่ายข้ามปีงบประมาณ)* | ⛔ CRITICAL | Fiscal year ends **September 30**. Rounds in Oct–Dec have `tax_year = round_year + 1`; rounds in Jan–Sep have `tax_year = round_year`. Public revenues and budgets cannot cross fiscal years. Amounts within a fiscal year (e.g. September) can be modified, but **CANNOT be modified, canceled, or shifted to be paid across into October (the next fiscal year)**. In multi-round adjustments, each round must be pinned strictly to its own `tax_year`. | `PBR-06`, `PBR-11` |
 | **PBR-04** | **Multi-Tenant Municipality Payer Disambiguation & Strict Scope Confinement**<br>*(ล็อก Entity UUID และจำกัดขอบเขตตามเทศบาลที่ระบุอย่างเคร่งครัด: ห้ามทำข้ามเทศบาล)* | ⛔ CRITICAL | Customer payer numbers (e.g. `68000977`) are shared across municipalities. All queries and updates must resolve and pin the unique entity UUID (`garbage_id` / `water_id`) and row primary keys. **Municipality Scope Confinement:** When the Jira card assigns a municipality (e.g. `[เกาะสมุย]`), the entire scope of work, investigation, verification (PBR-01..PBR-06), and correction is strictly confined within that municipality. Never evaluate, inspect, or mutate data across other municipalities. | `PBR-03` |
 | **PBR-05** | **Multi-Channel Satang Synchronization**<br>*(ซิงค์ยอดสตางค์ QR/Barcode ให้ตรงกับค่าธรรมเนียม)* | ⚠️ HIGH | Changes to invoice or transaction fees require atomic synchronization of PromptPay QR and barcode payloads in satang (`garbage_fee_qrcode.qr_code_text`, `barcode_text`) in the same transaction, ensuring payment gateways charge the exact business rate. | `PBR-04` |
 | **PBR-06** | **Unpaid Invoice Cancellation by Guarded Deletion**<br>*(ยกเลิกบิลที่ยังไม่ชำระด้วยการลบ / ห้ามลบบิลที่รับชำระแล้ว)* | ⛔ CRITICAL | Cancel verified unpaid target invoices by **DELETE of exact invoice rows and their exclusive QR/barcode rows and mapping links**; future due dates alone do not block cancellation, with live payment/printing/dependency checks, scoped row-count guards, offline backup, recoverable transaction and explicit per-action approval. Overdue does not mean paid. Never delete paid invoices, receipts or bank records, and never use `invoice_status_2` as a guessed cancellation state. | `PBR-08` |
 | **PBR-07** | **Demographic Data Integrity & Prohibition of Synthetic Records (Import-Only Invariant)**<br>*(ห้ามสร้างข้อมูลบุคคลเทียมเข้าสู่ฐานข้อมูล: ข้อมูลประชากรต้องมาจากการ Import เท่านั้น / ป้องกันบุคคลที่ไม่มีตัวตนจริง)* | ⛔ CRITICAL | Operational playbooks, incident handlers, and ad-hoc database corrections are **strictly prohibited from executing `INSERT INTO public.demographic`** to create synthetic, dummy, or placeholder citizen entities into production databases. Demographic entities represent verified physical/legal persons in civil registration and **MUST ONLY enter the system through the authorized civil/demographic import pipeline**. If a utility entity references a missing or orphaned `demo_id`, resolution MUST NOT insert a fake person to bypass missing-relation crashes; it must proceed via: (1) importing the verified official citizen record via official municipality demographic import, (2) re-linking to an existing verified citizen record if matched, or (3) hardening application code (frontend optional chaining, backend null handling) to handle missing demographic relations safely. | `PBR-07` |
+| **PBR-08** | **Total Water Amount & Tariff Calculation Invariant (Usage Fee, Meter Maintenance, VAT & Rolling Arrears)**<br>*(สูตรและหลักเกณฑ์การคำนวณยอดเงินค่าน้ำประปา: ค่าใช้น้ำตามขั้นอัตรา/ประเภทผู้ใช้, ค่าบำรุงรักษาตามขนาดมิเตอร์, ภาษีมูลค่าเพิ่ม 7%, และยอดหนี้ค้างชำระยกยอด)* | ⛔ CRITICAL | Water tariff calculations must strictly follow empirical master data (`master_water_usage_fee_rate`, `master_water_meter`, `master_water_type`). Volume usage is strictly $\text{current} - \text{previous}$. Water usage fee is determined by tier boundaries (flat/step rate per municipality tariff); meter maintenance fee is fixed by meter size; VAT is strictly calculated as $\text{ROUND}((\text{water\_fee} + \text{maint\_fee}) \times 7\%, 2)$; total current water fee is $\text{before\_vat} + \text{vat}$; invoice billing integrates any linked garbage fee and rolls forward unpaid previous month arrears per PBR-02. QR/barcode satang must synchronize atomically per PBR-05. | `PBR-07` |
+| **PBR-09** | **Selective Historical Invoice Correction & Incident-Driven Recreation Invariant**<br>*(การแก้ไขและสร้างใบแจ้งหนี้ย้อนหลังเฉพาะรอบเดือนด้วยกระบวนการ Incident / ข้อจำกัดของระบบแอปพลิเคชัน)* | ⛔ CRITICAL | Historical selective-month invoices cannot be cancelled, deleted, or recreated through the standard application UI/API because `getIsWaterInvoiceCancelable` strictly blocks cancellation of non-latest rounds, and API generation auto-increments invoice numbers (`invoice_no` drift) and calculates future due dates (`paymentDueDate = NOW() + 15 days`, violating PBR-02). Therefore, selective historical invoice deletion and recreation must be executed as a guarded database incident using TypeORM-aligned SQL in an atomic transaction that preserves original invoice numbers, maintains original due dates, initializes newly recreated invoices with `status = invoice_status_1` (รอพิมพ์) and `printed_date = NULL` for re-printing, synchronizes QR/barcode satang (PBR-05), preserves integrated billing (PBR-06), and strictly populates a valid `template_id` and authentic `created_by` user ID (never card keys/placeholders) to prevent backend API 500 crashes during template rendering. | `PBR-08` |
 
 ---
 
@@ -43,6 +45,17 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
        - **ที่อยู่:** `address_no`, `moo`, `alley`, `road`, `village_name`, `subdistrict_name`, `district_name`, `province_name`, `postcode`, `invoice_address`
        - **ข้อมูลทางทะเบียนและภาษี:** เลขประจำตัวผู้เสียภาษี / เลขบัตรประชาชน, เลขที่โฉนดที่ดิน (`deed_no`), หมายเหตุการชำระ (`payment_remarks`)
      - **ข้อกำหนดทางธุรกิจ:** **อนุญาตให้แก้ไขได้** แม้ว่าใบแจ้งหนี้หรือใบเสร็จนั้นจะถูกพิมพ์ไปแล้วหรือเก็บเงินแล้วก็ตาม เพื่อให้ประชาชนนำเอกสารไปใช้เบิกจ่ายหรือยื่นภาษีได้อย่างถูกต้อง โดยไม่มีผลกระทบต่อยอดเงินรวม ไม่กระทบต่อรายการเดินบัญชีธนาคาร และไม่กระทบต่อการสรุปยอดกระทบยอด (Reconciliation)
+  3. **วงจรชีวิตสถานะใบแจ้งหนี้และการทำงานของระบบอัตโนมัติ (Invoice Status Lifecycle & Automation):**
+     - สถานะใบแจ้งหนี้บนฐานข้อมูลเชื่อมโยงกับตาราง `master_value` (ประเภท `invoice_status`) โดยมีสถานะมาตรฐานและบทบาทในวงจรชีวิตดังนี้:
+       - **`invoice_status_0` (กำลังประมวลผล / Processing):** บิลอยู่ในคิวประมวลผลคำนวณยอด
+       - **`invoice_status_1` (รอพิมพ์ใบแจ้งหนี้ / Awaiting Print / Newly Created):** สถานะตั้งต้น (Initial State) เมื่อบิลถูกสร้างขึ้นใหม่ในระบบ ยังไม่ได้สั่งพิมพ์ (`printed_date IS NULL`) และยังไม่ชำระเงิน
+       - **`invoice_status_2` (รอชำระ / Awaiting Payment / Printed):** บิลที่เจ้าหน้าที่กดพิมพ์หรือส่งออกไฟล์แล้ว (`printed_date IS NOT NULL`) เพื่อส่งมอบให้ประชาชนชำระ
+       - **`invoice_status_3` (ชำระแล้ว / Paid):** ประชาชนชำระเงินเรียบร้อยแล้วและมีใบเสร็จรับเงิน (`receipt_id IS NOT NULL`) ถือเป็นบิลปิดรอบบัญชี ห้ามแตะต้องยอดเงินโดยเด็ดขาด
+       - **`invoice_status_4` (ค้างชำระ / Overdue):** บิลที่วันครบกำหนดชำระ (`payment_due_date`) ล่วงเลยเวลาปัจจุบันแล้ว โดยถูกปรับสถานะโดยอัตโนมัติผ่าน Cronjob ระบบประจำวัน (`waterFee:update-invoice-overdue-status` ใน `water-fee.command.ts`)
+       - **`invoice_status_5` (ยกเลิกใบแจ้งหนี้ / Cancelled):** บิลที่ถูกยกเลิกผ่านระบบ
+       - **`invoice_status_6` (รอตรวจสอบ / Under Audit):** บิลที่อยู่ระหว่างการตรวจสอบความถูกต้อง
+     - **การทำงานของ Cronjob ค้างชำระ (`waterFee:update-invoice-overdue-status`):**
+       - ระบบมี Cronjob ที่รันตามรอบเวลา คอยค้นหาใบแจ้งหนี้ที่ `payment_due_date <= CURRENT_DATE` และมีสถานะอยู่ในกลุ่ม `['invoice_status_0', 'invoice_status_1', 'invoice_status_2', 'invoice_status_6']` แล้วทำการปรับสถานะ (`UPDATE`) ให้กลายเป็น `invoice_status_4` (**"ค้างชำระ"**) ให้อัตโนมัติ
 - **Enforcement & PL/pgSQL Guards (ข้อบังคับในคำสั่งแก้ไข):**
   - ใน Safety Guard Assertion ของ `03_correct.sql` สำหรับการแก้ไขยอดเงิน จะต้องตรวจสอบทั้งบิลที่จ่ายแล้วและบิลที่พิมพ์แล้ว:
     ```sql
@@ -77,8 +90,8 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
 
 ---
 
-### PBR-02: Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability & Due Date Extension)
-- **ชื่อภาษาไทยสั้น (Short Thai Name):** รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือนและการห้ามต่ออายุใบแจ้งยอด
+### PBR-02: Billing Model Invariants: Accumulated vs Non-Accumulated (Period Editability, Due Date Extension & Two-Tier Architecture)
+- **ชื่อภาษาไทยสั้น (Short Thai Name):** รูปแบบการคิดเงิน: แบบทบยอด vs แบบไม่ทบยอด — การแก้ไขรอบเดือน, การห้ามต่ออายุใบแจ้งยอด, และโครงสร้างบิล 2 ชั้น (Assessment vs Payable)
 - **Consolidation Note:** รวมกฎเดิม `PBR-02` (Garbage Billing Non-Accumulation), `PBR-10` (Billing Period Editability), และ `PBR-12` (Invoice Due Date Extension Invariant) เข้าด้วยกันเป็นกฎเดียวที่ควบคุมกลไกความแตกต่างระหว่างระบบทบยอดและไม่ทบยอด
 - **Billing Mechanics Comparison (เปรียบเทียบรูปแบบการคิดเงิน):**
   1. **ค่าบริการแบบทบยอด (Accumulated / Rolling Arrears Billing — เช่น ค่าน้ำประปา `water_fee_*`):**
@@ -89,21 +102,38 @@ The business rules below consolidate all domain invariants, payment lifecycle ch
          1) วันหมดอายุ (`payment_due_date`) ว่ายังไม่หมดอายุใช่ไหม
          2) สถานะการชำระเงิน (Paid Status) ว่า Reference นี้จ่ายไปแล้วหรือยัง
        - ธนาคารไม่รู้ว่ายอดหนี้ของบิลเก่าได้ถูกยกยอดไปใส่ในบิลเดือนถัดไปแล้ว หากมีการต่ออายุบิลเก่า ธนาคารจะเห็นว่าบิลเก่ายังไม่หมดอายุและยังไม่จ่าย จึงอนุญาตให้ตัดเงินได้ทั้งบิลเก่าและบิลใหม่ ทำให้เกิด **"การชำระเงินซ้ำซ้อน (Double Payment)"** หรือ **"ยอดชำระเหลื่อมทับกัน (Overlapped Payment)"** ซึ่งทำให้ระบบกระทบยอด (Reconciliation) ผิดพลาดอย่างรุนแรง
+     - **โครงสร้างสถาปัตยกรรมบิล 2 ชั้น ในระบบทบยอด (Two-Tier Billing Architecture in Accumulated Billing):**
+       *หลักการทางธุรกิจ:* แม้ว่าระบบจะมีการทบยอดหนี้ค้างไปยังบิลเดือนล่าสุด (เช่น เดือน 9 รวมยอดหนี้ของเดือน 8 ไปแล้ว) **ระบบจำเป็นต้องมีและคงไว้ซึ่งเรคคอร์ดใบแจ้งหนี้ (`water_fee_invoice`) แยกของแต่ละเดือนที่ค้างชำระอย่างสมบูรณ์** (ไม่ใช่มีแค่บิลเดือนล่าสุดเพียงใบเดียว) โดยมีเหตุผลและสถาปัตยกรรม 2 ชั้นดังนี้:
+
+       **ชั้นที่ 1: ทะเบียนคุมหนี้และหนังสือแจ้งการประเมินรายเดือน (Monthly Assessment Statement / ทะเบียนคุมลูกหนี้รายงวด):**
+       - **การรับรู้รายได้และการตรวจสอบบัญชีภาครัฐ (Public Revenue Recognition & Audit Trail):** ตามระเบียบกระทรวงมหาดไทยว่าด้วยการรับเงิน การเบิกจ่ายเงิน การฝากเงิน การเก็บรักษาเงิน และการตรวจเงินขององค์กรปกครองส่วนท้องถิ่น เทศบาลต้องมีทะเบียนคุมลูกหนี้และหนังสือแจ้งการประเมินภาษี/ค่าธรรมเนียมสำหรับทุกรอบเดือนที่มีการให้บริการ ใบแจ้งหนี้ของเดือนเดิม (เช่น เดือน 8 `08000905`) ทำหน้าที่เป็น **"หนังสือแจ้งการประเมินรายเดือน (Assessment Notice)"** หากไม่มีใบแจ้งหนี้ของเดือน 8 จะเกิดช่องโหว่ทางบัญชี (Audit Hole) ทำให้รายงานลูกหนี้ค้างชำระประจำงวดของเทศบาลขาดเอกสารอ้างอิงทางกฎหมาย
+       - **การแจกแจงหน่วยการใช้และสิทธิผู้บริโภค (Itemized Historical Consumption Breakdown):** ประชาชนมีสิทธิ์ตรวจสอบประวัติการใช้น้ำและรายละเอียดค่าธรรมเนียมของแต่ละเดือนแยกกัน (เช่น เดือน 8 ใช้น้ำ 200 หน่วย = 2,042.05 บาท vs เดือน 9 ใช้น้ำ 120 หน่วย = 1,171.65 บาท) ใบแจ้งหนี้ประจำเดือนเดิมทำหน้าที่เป็น Statement แสดงรายละเอียดที่มาของยอดหนี้อย่างโปร่งใส หากมีข้อพิพาทหรือกระบวนการทางกฎหมาย เทศบาลต้องใช้ใบแจ้งหนี้ของงวดนั้นเป็นหลักฐาน
+
+       **ชั้นที่ 2: ใบแจ้งหนี้สำหรับชำระเงินรอบปัจจุบัน (Current Active Payable Bill with Rolling Arrears):**
+       - **เครื่องมือรวบรวมยอดชำระเดี่ยว (Consolidated Payment Vehicle):** ใบแจ้งหนี้ของเดือนล่าสุด (เช่น เดือน 9 `09000531`) ทำหน้าที่รวบรวมยอดหนี้ค้างชำระยกยอด (Arrears จากเดือน 8) + ยอดค่าบริการของเดือนปัจจุบัน เข้าเป็นยอดเรียกเก็บก้อนเดียว (3,213.70 บาท) เพื่อสร้าง PromptPay QR Code เพียงหนึ่งเดียว ประชาชนจึงสามารถสแกนจ่ายเงินครั้งเดียวครบทุกยอดค้าง
+       - **การตัดชำระหนี้พร้อมกันแบบปรมาณู (Atomic Multi-Month Receipt Settlement):** เมื่อประชาชนสแกนชำระเงินผ่าน QR Code ของเดือนล่าสุดสำเร็จ เกตเวย์จะสร้างใบเสร็จรับเงินใบเดียว (`water_fee_receipt`) แต่จะตัดหนี้ให้กับทุก Transaction ของทุกเดือนที่ผูกไว้ใน `water_fee_invoice_transaction` พร้อมกันในธุรกรรมเดียว
+
+       **กลไกความปลอดภัยป้องกันการชำระเงินซ้ำซ้อน (Anti-Double Payment via Gateway Due Date Expiry):**
+       - **เหตุใดประชาชนจึงไม่สามารถสแกนจ่ายบิลเดือนในอดีต (เดือน 8) ซ้ำได้ ทั้งที่มีใบแจ้งหนี้อยู่ในระบบ?**
+       - เนื่องจากใบแจ้งหนี้ของเดือนในอดีต (เดือน 8) คงวันครบกำหนดเดิม (`payment_due_date = 2026-08-25`) ซึ่ง**เลยกำหนดชำระไปแล้ว (Overdue / สถานะ `invoice_status_4`)**
+       - เมื่อประชาชนนำ QR Code ของบิลเดือน 8 ไปสแกน เกตเวย์ธนาคาร (KTB Gateway) จะตรวจสอบ `payment_due_date` และปฏิเสธการทำรายการทันที (`บิลเกินกำหนดชำระ ไม่สามารถทำรายการได้`)
+       - ด้วยกลไกนี้ ทำให้ใบแจ้งหนี้เดือน 8 ทำหน้าที่เป็นเพียง **"เอกสารประเมินหนี้/ทะเบียนคุม (Assessment Statement)"** ไม่สามารถนำไปสแกนจ่ายเงินได้อีก จึงขจัดความเสี่ยงจากการจ่ายเงินซ้ำซ้อน (Double Payment) ได้ 100% โดยประชาชนจะสแกนจ่ายได้เฉพาะบิลของเดือนล่าสุด (เดือน 9) ที่ยังไม่หมดอายุเท่านั้น
   2. **ค่าบริการแบบไม่ทบยอด (Non-Accumulated / Discrete Billing — เช่น ค่าธรรมเนียมขยะ `garbage_fee_*`):**
      - **กลไกยอดเดี่ยว:** แต่ละรอบเดือนเป็นเอกเทศจากกัน (Discrete month-by-month) ไม่มียอดหนี้ทบไปรอบถัดไป
      - **การแก้ไขรอบเดือน (Period Editability):** **สามารถแก้ไขรอบเดือนใดก็ได้** ย้อนหลังหลายรอบเดือนได้อย่างอิสระ (ตราบเท่าที่เป็นไปตามกฎ `PBR-01` คือยังไม่จ่ายและยังไม่พิมพ์)
      - **การต่ออายุใบแจ้งยอด (Due Date Extension):** **สามารถต่ออายุหรือขยายวันครบกำหนดชำระได้** เนื่องจากแต่ละบิลเป็นของเดือนนั้น ๆ โดยเฉพาะ ไม่มีการยกยอดหนี้ค้างไปรวมทบกับบิลเดือนถัดไป การขยายเวลาชำระจึงไม่ทำให้เกิดยอดหนี้ซ้ำซ้อนหรือทับซ้อนกับบิลเดือนอื่น
 - **Enforcement & Operational Guardrails (ข้อบังคับในระบบ):**
   - หากเป็นระบบทบยอด (ค่าน้ำประปา):
-    - ใน Safety Guard Assertion ต้องมีคำสั่งตรวจสอบว่ารอบเดือนเป้าหมายเป็นเดือนปัจจุบันเท่านั้น (`round_month = current_month`)
-    - ห้ามมีคำสั่ง UPDATE `payment_due_date` บนตารางค่าน้ำประปา (`water_fee_*`) โดยเด็ดขาด
+    - ใน Safety Guard Assertion ต้องมีคำสั่งตรวจสอบว่ารอบเดือนเป้าหมายเป็นเดือนปัจจุบันเท่านั้น (`round_month = current_month`) เว้นแต่เป็นการแก้ไขผ่านกระบวนการ Incident ที่ได้รับการอนุญาตเฉพาะกรณีตามกฎ `PBR-09`
+    - ห้ามมีคำสั่ง UPDATE `payment_due_date` บนตารางค่าน้ำประปา (`water_fee_*`) เพื่อขยายวันครบกำหนดโดยเด็ดขาด บิลเดือนในอดีตต้องคงวันครบกำหนดเดิมเพื่อรักษาเกราะป้องกันการสแกนจ่ายซ้ำของธนาคาร
+    - ในกรณีที่มีการลบและสร้างบิลใหม่ย้อนหลังตาม `PBR-09` จะต้องสร้างใบแจ้งหนี้ครบทุกรอบเดือนที่ค้างชำระ (เช่น ทั้งเดือน 8 และ เดือน 9) เพื่อรักษาความสมบูรณ์ของทะเบียนคุมหนี้ (Assessment Statements) และสายการทบยอด
   - หากเป็นระบบไม่ทบยอด (ค่าขยะ):
     - อนุญาตให้ระบุแก้ไขหลายเดือนพร้อมกันได้ (เช่น `round_month in (8, 9, 10)` สำหรับค่าขยะ)
     - แต่ละรอบเดือนต้องมี PromptPay QR Code และตัวเลขสตางค์แยกของตนเอง (เช่น 60 บาท = `6000` สตางค์ต่อเดือน) ห้ามนำมารวมเป็นยอดเดียว
 - **Verification Checklist (วิธีการตรวจสอบ):**
-  1. **สคริปต์ `01_investigate_readonly.sql`:** ตรวจสอบประเภทบริการว่าเป็นแบบทบยอดหรือแบบไม่ทบยอด
-  2. **สคริปต์ `03_correct.sql`:** ยืนยันว่าหากเป็นแบบทบยอด มีเงื่อนไขเฉพาะเดือนปัจจุบันและไม่มีการแก้ไข `payment_due_date`
-  3. **เกณฑ์การผ่าน (Expected Result):** บริการแบบทบยอดไม่มีการแก้ไขย้อนหลังข้ามเดือนและไม่มีการต่ออายุบิล; บริการแบบไม่ทบยอดมี QR Code แยกรายเดือนสอดคล้อง 100%
+  1. **สคริปต์ `01_investigate_readonly.sql`:** ตรวจสอบประเภทบริการว่าเป็นแบบทบยอดหรือแบบไม่ทบยอด และตรวจสอบสถานะ `payment_due_date` ของทุกเดือนที่ค้างชำระ
+  2. **สคริปต์ `03_correct.sql`:** ยืนยันว่าหากเป็นแบบทบยอด มีการสร้าง/คงใบแจ้งหนี้ครบทุกงวด โดยบิลอดีตคงวันครบกำหนดเดิมและไม่มีการขยายเวลา, บิลปัจจุบันมี QR Code ที่ทบยอดหนี้ถูกต้อง
+  3. **เกณฑ์การผ่าน (Expected Result):** บริการแบบทบยอดมีใบแจ้งหนี้ครบทุกรอบเดือนตามทะเบียนคุมหนี้, บิลในอดีตหมดอายุไม่สามารถสแกนจ่ายได้, และบิลล่าสุดทบยอดถูกต้อง 100% โดยไม่มีการต่ออายุบิล; บริการแบบไม่ทบยอดมี QR Code แยกรายเดือนสอดคล้อง 100%
 
 ---
 
@@ -244,3 +274,138 @@ For amount updates, the verified garbage status1 is the eligible unpaid/unprinte
 3. **PBR-07 Decision Gate:**
    - **PASS:** ไม่มีการแทรกหรือสร้างข้อมูลบุคคลเทียมลงในฐานข้อมูล
    - **FAIL / HALT:** มีความพยายามที่จะ INSERT ข้อมูลบุคคลสังเคราะห์เข้าสู่ `public.demographic` สคริปต์ต้องหยุดการทำงานทันที
+
+### PBR-08: Total Water Amount & Tariff Calculation Invariant (Usage Fee, Meter Maintenance, VAT & Rolling Arrears)
+- **ชื่อภาษาไทยสั้น (Short Thai Name):** สูตรและหลักเกณฑ์การคำนวณยอดเงินค่าน้ำประปา: ค่าใช้น้ำตามขั้นอัตรา/ประเภทผู้ใช้, ค่าบำรุงรักษาตามขนาดมิเตอร์, ภาษีมูลค่าเพิ่ม 7%, และยอดหนี้ค้างชำระยกยอด
+- **Business Rationale & Invariants (หลักการทางธุรกิจและกฎการคำนวณ):**
+  การคำนวณยอดเงินค่าน้ำประปาในระบบ Smart Utilities ทั้งในตารางรายการคำนวณ (`water_fee_transaction`) และใบแจ้งหนี้ (`water_fee_invoice`) จะต้องสอดคล้องกับตารางอัตราค่าน้ำหลัก (Master Data) ของแต่ละองค์กรปกครองส่วนท้องถิ่น (`sid`) อย่างเคร่งครัด ห้ามคำนวณด้วยการประมาณการหรือสูตรที่คิดขึ้นเอง
+
+  1. **การคำนวณหน่วยการใช้น้ำ (Total Volume Usage):**
+     $$\text{total\_volume\_usage} = \text{current\_volume\_usage} - \text{previous\_volume\_usage}$$
+     - หน่วยการใช้น้ำต้องเป็นจำนวนเต็มที่ไม่ติดลบ ($\ge 0$)
+     - ความต่อเนื่องของเลขมิเตอร์ (Reading Sequence Continuity): `previous_volume_usage` ของเดือนปัจจุบันจะต้องตรงกับ `current_volume_usage` ของรอบเดือนก่อนหน้าอย่างต่อเนื่อง และ `current_volume_usage` ของเดือนปัจจุบันจะต้องกลายเป็น `previous_volume_usage` ของรอบเดือนถัดไป (รวมถึงรอบที่ยังไม่ได้จดมิเตอร์หรือ In-Flight)
+
+  2. **การคำนวณค่าใช้น้ำประปา (`water_usage_fee`):**
+     - ค่าใช้น้ำประปาถูกกำหนดตามประเภทผู้ใช้น้ำ (`water_fee_type_id` ใน `master_water_usage_fee_type` เชื่อมโยงผ่าน `water_fee_detail` $\to$ `water_meter_detail`) และตารางขั้นอัตรา (`master_water_usage_fee_rate`)
+     - **โครงสร้างอัตราค่าน้ำสำหรับประเภททั่วไป (เช่น เทศบาลตำบลบางหญ้าแพรก `sid = 'S0006'`):**
+       - **ช่วงที่ 1 (1–50 หน่วย):** อัตรา **7.00 บาท/หน่วย**
+       - **ช่วงที่ 2 (51 หน่วยขึ้นไป):** อัตรา **9.00 บาท/หน่วย**
+       - การคิดอัตราตามขั้น (Tier Evaluation): คิดตามขั้นอัตราที่ตกอยู่ตามปริมาณการใช้งานรวม:
+         - หาก $\text{total\_volume\_usage} \le 50$: $\text{water\_usage\_fee} = \text{total\_volume\_usage} \times 7.00$
+         - หาก $\text{total\_volume\_usage} \ge 51$: $\text{water\_usage\_fee} = \text{total\_volume\_usage} \times 9.00$
+       - กรณีไม่ใช้น้ำ ($\text{total\_volume\_usage} = 0$): `is_no_water_consumed = true` และ `water_usage_fee = 0.00`
+
+  3. **การคำนวณค่าบำรุงรักษามิเตอร์ (`meter_maintenance_fee`):**
+     - เป็นค่าธรรมเนียมคงที่รายเดือนตามขนาดของมิเตอร์น้ำ (`meter_size` ใน `master_water_meter` เชื่อมโยงผ่าน `water_meter_detail.meter_id`)
+     - ตารางขนาดมิเตอร์และค่าบำรุงรักษา:
+       - ขนาด 1/2 นิ้ว (`meter_size_1`): **15.00 บาท/เดือน**
+       - ขนาด 3/4 นิ้ว (`meter_size_2`): **20.00 บาท/เดือน**
+       - ขนาด 1 นิ้ว (`meter_size_3`): **25.00 บาท/เดือน**
+       - ขนาด 1 1/2 นิ้ว (`meter_size_4`): **55.00 บาท/เดือน**
+       - ขนาด 2 นิ้ว (`meter_size_5`): **75.00 บาท/เดือน**
+
+  4. **ยอดเงินรวมก่อนภาษีมูลค่าเพิ่ม (`before_total_fee`):**
+     $$\text{before\_total\_fee} = \text{water\_usage\_fee} + \text{meter\_maintenance\_fee}$$
+
+  5. **การคำนวณภาษีมูลค่าเพิ่ม 7% (`vat_fee`):**
+     - คำนวณจากยอดรวมก่อนภาษี คูณด้วยอัตราภาษี (`percent_vat = 7.0` จาก `master_water_type`) ปัดเศษทศนิยม 2 ตำแหน่งตามหลักคณิตศาสตร์:
+     $$\text{vat\_fee} = \text{ROUND}(\text{before\_total\_fee} \times 0.07, 2)$$
+
+  6. **ยอดเงินรวมค่าน้ำสุทธิประจำงวด (`after_total_fee`):**
+     $$\text{after\_total\_fee} = \text{before\_total\_fee} + \text{vat\_fee}$$
+
+  7. **ยอดเรียกเก็บบนใบแจ้งหนี้และการทบยอดหนี้ค้างชำระ (Invoice Total & Rolling Arrears per PBR-02):**
+     - หากมีการผูกเก็บค่าธรรมเนียมขยะรวมในใบแจ้งหนี้ (`garbage_transaction_id` ใน `water_fee_invoice_transaction`):
+       $$\text{current\_month\_charge} = \text{after\_total\_fee} + \text{integrated\_garbage\_fee}$$
+     - หากมีหนี้ค้างชำระจากเดือนก่อนหน้า ยอดหนี้ค้างชำระจะถูกยกยอดมาบวกทบในใบแจ้งหนี้เดือนปัจจุบัน (Rolling Arrears):
+       $$\text{total\_invoice\_amount} = \text{current\_month\_charge} + \text{outstanding\_arrears}$$
+     - สตางค์ใน PromptPay QR Code (`qr_code_text`) และ Barcode (`barcode_text`) จะต้องมีค่าเท่ากับ $\text{ROUND}(\text{total\_invoice\_amount} \times 100)$ สตางค์เสมอ ตามกฎ `PBR-05`
+
+- **Enforcement & Safety Guard Assertions (ข้อบังคับในสคริปต์แก้ไขข้อมูล):**
+  ในคำสั่งแก้ไขข้อมูล (`03_correct.sql`) จะต้องมี Assertion ตรวจสอบความถูกต้องของตัวเลขตามสูตรก่อนการ Commit เสมอ:
+  ```sql
+  -- Assertion: ตรวจสอบสูตรการคำนวณค่าน้ำ ค่าบำรุงรักษา และ VAT
+  if v_total_usage <> (v_curr_usage - v_prev_usage) then
+    raise exception 'HALT (PBR-08): Usage mismatch. Expected % - % = %, got %',
+      v_curr_usage, v_prev_usage, (v_curr_usage - v_prev_usage), v_total_usage;
+  end if;
+
+  if v_before_fee <> (v_water_fee + v_maint_fee) then
+    raise exception 'HALT (PBR-08): Before fee mismatch. Expected % + % = %, got %',
+      v_water_fee, v_maint_fee, (v_water_fee + v_maint_fee), v_before_fee;
+  end if;
+
+  if v_vat_fee <> round((v_before_fee * 0.07)::numeric, 2) then
+    raise exception 'HALT (PBR-08): VAT mismatch. Expected round(% * 0.07, 2) = %, got %',
+      v_before_fee, round((v_before_fee * 0.07)::numeric, 2), v_vat_fee;
+  end if;
+
+  if v_after_fee <> (v_before_fee + v_vat_fee) then
+    raise exception 'HALT (PBR-08): After fee mismatch. Expected % + % = %, got %',
+      v_before_fee, v_vat_fee, (v_before_fee + v_vat_fee), v_after_fee;
+  end if;
+  ```
+
+- **Verification Checklist (วิธีการตรวจสอบ):**
+  1. **สคริปต์ `01_investigate_readonly.sql`:** ตรวจสอบขนาดมิเตอร์ใน `water_meter_detail` / `master_water_meter` และประเภทอัตราใน `master_water_usage_fee_rate` เพื่อยืนยันฐานอัตราที่ถูกต้องของ Entity เป้าหมาย
+  2. **สคริปต์ `03_correct.sql`:** มี Assertion ดักจับการคำนวณทั้ง 4 ส่วน (`usage`, `water_usage_fee`, `vat_fee`, `after_total_fee`) และตรวจสอบยอดสตางค์ QR/Barcode
+  3. **สคริปต์ `04_verify_readonly.sql`:** คิวรีอ่านกลับค่าที่บันทึก ยืนยันว่าค่าที่ลงตารางตรงกับสูตรคณิตศาสตร์ 100%
+
+---
+
+### PBR-09: Selective Historical Invoice Correction & Incident-Driven Recreation Invariant
+- **ชื่อภาษาไทยสั้น (Short Thai Name):** การแก้ไขและสร้างใบแจ้งหนี้ย้อนหลังเฉพาะรอบเดือนด้วยกระบวนการ Incident / ข้อจำกัดของระบบแอปพลิเคชัน
+- **Business Rationale & Technical Invariants (หลักการทางธุรกิจและข้อจำกัดทางเทคนิค):**
+  ในกรณีที่มีคำร้องขอแก้ไขยอดหรือยกเลิกและสร้างใบแจ้งหนี้ใหม่เฉพาะรอบเดือนในอดีต (Selective Historical Month เช่น เดือน ส.ค. หรือ ก.ย. ในขณะที่เทศบาลเปิดรอบเดือน ต.ค. ไปแล้ว) **ไม่สามารถกระทำผ่านหน้าจอ Web UI หรือ API ของแอปพลิเคชันได้** และจำเป็นต้องดำเนินการผ่านกระบวนการ Incident ของ Playbook ด้วยเหตุผลทางเทคนิคและธุรกิจดังต่อไปนี้:
+
+  1. **ข้อจำกัดการยกเลิกบิลย้อนหลังในแอปพลิเคชัน (`getIsWaterInvoiceCancelable` Barrier):**
+     - ในโค้ดระบบ Backend (`WaterFeeInvoiceService.getIsWaterInvoiceCancelable`) กำหนดเงื่อนไขไว้อย่างเข้มงวดว่า บิลที่จะยกเลิกได้จะต้องมี `round_month` และ `round_year` **ตรงกับรอบธุรกรรมล่าสุดของทั้งเทศบาล (`sid`) เท่านั้น**
+     - หากเทศบาลเริ่มรอบเดือนใหม่แล้ว (เช่น มีรอบเดือน 10 แล้ว) บิลของรอบเดือนก่อนหน้า (เช่น เดือน 8 หรือ 9) จะได้ค่า `isWaterInvoiceCancelable = false` เสมอ
+     - หากพยายามกดยกเลิกผ่านหน้าจอหรือเรียก API `PATCH /waterFeeInvoice/:invoiceId` ระบบจะปฏิเสธด้วย `404 NotFoundException('INVOICE_NOT_FOUND')`
+     - นอกจากนี้ ระบบแอปพลิเคชันไม่มี Endpoint สำหรับการลบ (Hard DELETE) ข้อมูลบิลและตาราง Mapping ออกจากฐานข้อมูล
+
+  2. **ผลกระทบและความเสียหายหากพยายามสร้างบิลย้อนหลังผ่าน API (`POST /waterFeeInvoice` Drift):**
+     - หากมีการลบบิลเดิมออกแล้วสั่งสร้างใหม่ผ่าน API ของระบบ จะเกิดปัญหาสำคัญ 2 ประการที่ขัดแย้งกับกฎทางธุรกิจ:
+       1) **การเปลี่ยนเลขที่ใบแจ้งหนี้ (Invoice Number Drift):** API จะนำ `MAX(invoice_no) + 1` ของรอบเดือนนั้นมาสร้างเป็นเลขบิลใหม่ (เช่น กลายเป็น `08000951` แทนที่จะเป็น `08000905`) ทำให้สูญเสียเลขที่อ้างอิงเดิมของประชาชน
+       2) **การขยายวันครบกำหนดชำระซึ่งผิดกฎ PBR-02 (Due Date Extension):** API จะคำนวณ `paymentDueDate = NOW() + INTERVAL '15 days'` ทำให้วันครบกำหนดของบิลเดือนสิงหาคมถูกเลื่อนมาเป็นปลายเดือนพฤศจิกายน ซึ่งผิดกฎ **PBR-02 (ห้ามต่ออายุบิลค่าน้ำแบบทบยอด)** และทำให้ QR Code สามารถสแกนจ่ายซ้ำซ้อนกับยอดหนี้ทบยอดได้
+
+  3. **ข้อกำหนดในการปฏิบัติการแก้ไขผ่าน Incident Playbook:**
+     - การแก้ไขและสร้างบิลย้อนหลังเฉพาะรอบเดือน **ต้องดำเนินการผ่าน Playbook Guarded Script (`03_correct.sql`)** เท่านั้น
+     - คำสั่ง SQL จะต้องจำลอง Query Logic ของ TypeORM จาก `WaterFeeInvoiceRepository` อย่างแม่นยำ 100%
+     - **รักษาสถานะดั้งเดิม (State Preservation):**
+       - คงเลขที่ใบแจ้งหนี้เดิม (`invoice_no`)
+       - คงวันครบกำหนดชำระเดิม (`payment_due_date`)
+       - คำนวณยอดสตางค์ใน QR Code / Barcode สอดคล้องกับยอดค่าธรรมเนียมจริง 100% (PBR-05)
+       - รักษาการเชื่อมโยงกับค่าธรรมเนียมขยะรวม (`garbage_transaction_id`) ให้ครบถ้วน (PBR-06)
+     - ปฏิบัติการทั้งหมดต้องทำงานภายใต้ Transaction เดียว และต้องผ่านการทดสอบ Dry-run ด้วย `ROLLBACK;` ก่อนเสมอ
+
+  4. **การกำหนดสถานะของบิลที่สร้างใหม่และการเปลี่ยนผ่านสู่สถานะค้างชำระ (Initial Status for Recreated Invoices & Overdue Transition):**
+     - **สถานะเริ่มต้น (Default Initial Status):** ใบแจ้งหนี้ที่ถูกสร้างใหม่ผ่าน Playbook Incident จะต้องกำหนดสถานะเริ่มต้นเป็น `status = 'invoice_status_1'` (**"รอพิมพ์ใบแจ้งหนี้"**) พร้อมทั้ง `printed_date = NULL` เสมอ เพื่อสะท้อนความเป็นจริงในระบบว่าบิลนี้เพิ่งถูกสร้างขึ้นใหม่ และเปิดโอกาสให้เจ้าหน้าที่เทศบาลสามารถกดพิมพ์/ดาวน์โหลดเอกสารใบแจ้งหนี้ฉบับแก้ไขยอดใหม่ไปส่งมอบให้ประชาชนได้
+     - **การปรับเป็นสถานะค้างชำระ (Overdue Transition):**
+       - *ทางเลือกอัตโนมัติ (Automated Cron Path):* เมื่อบิลถูกสร้างขึ้นใหม่ แม้ว่า `payment_due_date` จะเป็นวันที่ในอดีต ระบบจะปล่อยให้ Cronjob ประจำวัน (`waterFee:update-invoice-overdue-status`) กวาดและปรับสถานะเป็น `invoice_status_4` (**"ค้างชำระ"**) ให้อัตโนมัติในรอบรันประจำวัน
+       - *ทางเลือกปรับทันที (Immediate Explicit Overdue State):* ในกรณีที่ผู้ใช้งานหรือเจ้าหน้าที่ประสงค์ให้ระบบแสดงผลบนหน้าจอทันทีว่าเป็นบิลค้างชำระ (เพื่อให้ตรงกับสถานะเดิมก่อนแก้ไขในอดีตทันทีโดยไม่ต้องรอรอบ Cronjob) สามารถกำหนดให้ `status = 'invoice_status_4'` ได้ โดยต้องคงวันครบกำหนดเดิม (`payment_due_date`) ไว้เสมอ เพื่อรักษาเกราะป้องกันการสแกนจ่ายซ้ำของเกตเวย์ธนาคารตามกฎ `PBR-02`
+
+  5. **เงื่อนไขเทมเพลตใบแจ้งหนี้และข้อมูลผู้ลงนาม (Template ID & Authentic Signer Invariant):**
+     - **ความจำเป็นของ `template_id` (Mandatory Active Template UUID):**
+       - ในตาราง `public.water_fee_invoice` คอลัมน์ `template_id` **ต้องไม่เป็น NULL และต้องอ้างอิงไปยัง UUID ที่มีอยู่จริงใน `public.water_invoice_template`** ของเทศบาลนั้นๆ (`sid`)
+       - **เหตุผลทางสถาปัตยกรรม (Architectural Fatal Cause):**
+         - ใน Backend API (`water-fee-invoice.service.ts` ในฟังก์ชัน `getInvoiceDetail`) ระบบจะทำ `LEFT JOIN` เข้ากับ `water_invoice_template` ผ่าน `it.template_id = fi.template_id`
+         - หาก `template_id` เป็น NULL การ Join จะไม่ได้ผล ทำให้ค่า `is_default_main_user_used` กลายเป็น `false` (Falsy)
+         - โค้ดของระบบจะกระโดดเข้าบล็อก `if (!queryInvoiceDetail.isDefaultMainUserUsed)` เพื่อค้นหาข้อมูลผู้ลงนามจากตาราง `public.user` โดยใช้ `u.userid = fi.created_by`
+     - **ข้อห้ามใช้รหัสการ์ดหรือ Placeholder ใน `created_by` (Authentic User Reference Mandatory):**
+       - คอลัมน์ `created_by` และ `updated_by` ใน `water_fee_invoice` **ต้องอ้างอิงรหัสผู้ใช้ (`userid`) ที่มีอยู่จริงในตาราง `public.user` เสมอ (เช่น `'U2025030014'`)**
+       - **ห้ามใส่รหัสการ์ด Jira, ข้อความ Placeholder, หรือสตริงว่าง (เช่น `'SU-10768'`) ในคอลัมน์ `created_by` โดยเด็ดขาด**
+       - หาก `created_by` ไม่มีในตาราง `user` ผลการคิวรี `userDetailQuery` จะได้ค่าเป็น `undefined` และคำสั่ง `userDetailQuery.title` ในโค้ด Backend จะพังทลาย (Crash) ทันทีด้วยข้อผิดพลาด:
+         $$\text{TypeError: Cannot read properties of undefined (reading 'title')}$$
+         ส่งผลให้ API ตอบกลับด้วย **HTTP 500 Internal Server Error** และทำให้หน้าจอเว็บ (`/water/people/[waterId]/invoice/[invoiceId]`) **ไม่สามารถแสดงผลข้อมูลบิลได้ (หน้าจอว่างเปล่า / Blank Page)**
+     - **ข้อมูลลายเซ็นและข้อมูลทางทะเบียน (Signer Metadata & Demographic Alignment):**
+       - ในคำสั่ง INSERT บิลใหม่ จะต้องคัดลอกหรือดึงข้อมูลต่อไปนี้ให้ครบถ้วนสมบูรณ์:
+         - `template_id`: UUID เทมเพลตที่เปิดใช้งานของเทศบาล (จากบิลเดิม หรือจาก `water_invoice_template` ที่ `is_active = true`)
+         - `created_by` / `updated_by`: User ID เจ้าหน้าที่ผู้รับผิดชอบจากตาราง `public.user`
+         - `main_user_fullname`: ชื่อ-นามสกุลผู้ลงนาม (เช่น `'นาย ประภาส พันธ์โพธิ์ทอง'`)
+         - `main_user_position`: ตำแหน่งผู้ลงนาม (เช่น `'เจ้าพนักงานผลิตน้ำประปา'`)
+         - `main_user_signature`: URL ลายเซ็นดิจิทัลของผู้ลงนาม
+         - `meter_zone_name`: รหัสโซนมิเตอร์ (เช่น `'008-สันติ'`)
+         - `ref_keyword`: รหัสอ้างอิงลำดับ (เช่น `'107'`)
+         - `legal_status`: สถานะนิติบุคคล (เช่น `'legal_status_2'`)
+         - ข้อมูลชื่อ-นามสกุลผู้ใช้น้ำ (`title`, `firstname`, `lastname`) ต้องตรงกับตาราง `demographic` จริง (ไม่นำชื่อจากตัวอย่างหรือ template มาใส่)

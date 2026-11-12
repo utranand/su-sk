@@ -38,6 +38,21 @@ In Smart Utilities water fee management (`su-sk`), removing and recreating invoi
 5. **Historical Paid Invoices Immutability (PBR-01):**
    - Preceding rounds (e.g. July/month 7) that are already paid with issued receipts remain 100% untouched.
 
+6. **Template ID & Authentic Signer Invariant (PBR-09 — Preventing Backend 500 Blank Invoice Display):**
+   - In `public.water_fee_invoice`, `template_id` **MUST** be populated with a valid active template UUID from `public.water_invoice_template` matching the municipality (`sid`).
+   - `created_by` and `updated_by` **MUST** reference an authentic municipal officer ID (`userid`) in `public.user` (e.g. `'U2025030014'`).
+   - **Architectural Failure Mode (Fatal TypeError):** In `WaterFeeInvoiceService.getInvoiceDetail`, the backend left-joins `WaterInvoiceTemplate` on `it.template_id = fi.template_id`. If `template_id` is `NULL`, `isDefaultMainUserUsed` evaluates to `false`, and the API queries `public.user` by `fi.created_by`. If `created_by` is set to a Jira card key (e.g. `'SU-10768'`) or placeholder, `userDetailQuery` returns `undefined`, crashing the API with:
+     $$\text{TypeError: Cannot read properties of undefined (reading 'title')}$$
+     This returns **HTTP 500 Internal Server Error**. The frontend catches HTTP 500, sets `invoice = null`, and renders a completely blank page at `/water/people/[waterId]/invoice/[invoiceId]`.
+   - Recreated invoices must also faithfully populate: `main_user_fullname`, `main_user_position`, `main_user_signature`, `meter_zone_name`, `ref_keyword`, `legal_status`, and consumer name fields (`title`, `firstname`, `lastname`) directly from `public.demographic` / `public.water_fee_detail`.
+
+## Why Handled as an Incident (Application Limitations on Selective Months)
+
+An invoice on a selective past month **cannot** be deleted or recreated through the standard application UI or API endpoints:
+1. **Application Cancellation Guard (`getIsWaterInvoiceCancelable`):** The backend code in `WaterFeeInvoiceService` explicitly restricts cancellation to only the latest active transaction round across the entire municipality. Attempting to cancel any earlier round (such as Month 8 when Month 10 exists) returns `404 NotFoundException('INVOICE_NOT_FOUND')`. Furthermore, the application has no hard `DELETE` endpoint.
+2. **Invoice Number & Due Date Drift:** Creating a bill via the application API (`POST /waterFeeInvoice`) auto-increments to `MAX(invoice_no) + 1` (losing the original invoice identifier) and calculates `payment_due_date = NOW() + 15 days`, violating **PBR-02** (due date extension prohibition for accumulated billing).
+3. **The Incident Resolution:** Playbook `database-correction.water-invoice-recreation` executes the deletion and recreation directly in a guarded atomic transaction using the exact TypeORM SQL queries, while preserving historical invoice numbering, historical due dates, and rolling arrears integrity.
+
 ## Lifecycle & Stage Dispatch
 
 Follow the canonical stage dispatch:

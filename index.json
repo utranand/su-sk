@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-09T18:26:10.433+07:00",
+  "generated_at": "2026-11-11T19:09:50.518+07:00",
   "scope": "project",
   "project": "su-sk",
-  "built_at_commit": "f156a83849de948aa6f0891d79d9dbd00a1b40f6",
+  "built_at_commit": "3a9604fdf9b47d44426a9efbe80b095460e859ee",
   "services": {
     "smart-utilities-api": {
       "path": "projects/su-sk/services/smart-utilities-api",
@@ -20,7 +20,16 @@
       "service_yaml": "projects/su-sk/services/smart-utilities-citizen-api/service.yaml",
       "remote_source": "https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-citizen-api",
       "branch": "main",
-      "commit": "a3895ad679ec8c0bdbd9f8ea26cc6708801cf29c",
+      "commit": "7a1e9cfa23b059f771144c9c373c919275fb1746",
+      "state": "pulled"
+    },
+    "smart-utilities-citizen-frontend": {
+      "path": "projects/su-sk/services/smart-utilities-citizen-frontend",
+      "working_folder": "projects/su-sk/services/smart-utilities-citizen-frontend/src",
+      "service_yaml": "projects/su-sk/services/smart-utilities-citizen-frontend/service.yaml",
+      "remote_source": "https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-citizen-frontend",
+      "branch": "main",
+      "commit": "d4ad9c359db7014057f717b2395fff052c1cf260",
       "state": "pulled"
     },
     "smart-utilities-frontend": {

@@ -10,6 +10,7 @@
 --    - Verify municipality SID and consumer water_id.
 --    - Assert exact target water_fee_invoice count and unpaid status (receipt_id IS NULL, payment_date IS NULL, printed_date IS NULL).
 --    - Assert underlying water_fee_transaction rows carry corrected volumes and fees.
+--    - Assert template_id exists in public.water_invoice_template and created_by exists in public.user (never use card keys).
 --    - Fail with RAISE EXCEPTION on ANY discrepancy before DML begins.
 -- 3. Execution steps in exact dependency order:
 --    a) DELETE old mapping links:
@@ -27,22 +28,27 @@
 --           title, firstname, lastname, address_no, moo, alley, road,
 --           village_name, subdistrict_name, district_name, province_name, postcode,
 --           meter_size, payment_due_date, status, sid, created_date, created_by,
+--           updated_date, updated_by, template_id, main_user_fullname, main_user_position,
+--           main_user_signature, meter_zone_name, ref_keyword, legal_status,
 --           remarks, qr_code_text, barcode_text, gated_community
 --       ) VALUES (
 --           '<NEW_INVOICE_UUID_1>', '<WATER_ID>', '<METER_ID>', <TAX_YEAR>, '<NEW_INVOICE_NO_1>',
 --           <ROUND_YEAR>, <ROUND_MONTH_1>, '<WATER_NO>', '<ORDER_NO>', '<NEW_REF1_1>', '<NEW_REF2_1>',
 --           '<TITLE>', '<FIRSTNAME>', '<LASTNAME>', '<ADDR>', <MOO>, '<ALLEY>', '<ROAD>',
 --           '<VILLAGE>', '<SUBDISTRICT>', '<DISTRICT>', '<PROVINCE>', '<POSTCODE>',
---           '<METER_SIZE>', '<DUE_DATE>', 'invoice_status_1', '<SID>', now(), '<CARD_KEY>',
+--           '<METER_SIZE>', '<DUE_DATE>', 'invoice_status_1', '<SID>', now(), '<AUTHENTIC_OFFICER_USERID>',
+--           now(), '<AUTHENTIC_OFFICER_USERID>', '<ACTIVE_TEMPLATE_UUID>', '<MAIN_USER_FULLNAME>', '<MAIN_USER_POSITION>',
+--           '<MAIN_USER_SIGNATURE>', '<METER_ZONE_NAME>', '<REF_KEYWORD>', '<LEGAL_STATUS>',
 --           '<CARD_KEY> invoice recreation', '<NEW_QR_1>', '<NEW_BARCODE_1>', '<GATED>'
 --       );
 --       (Repeat for each target round; assert inserted count).
+--       (CRITICAL: created_by and updated_by must be authentic user IDs from public.user [e.g. 'U2025030014'], NEVER ticket/card keys; template_id must be valid active template UUID).
 --    d) INSERT new mapping links into public.water_fee_invoice_transaction:
 --       INSERT INTO public.water_fee_invoice_transaction (invoice_id, transaction_id, garbage_transaction_id)
 --       VALUES ('<NEW_INVOICE_UUID_1>', '<WATER_TX_1>', '<OPTIONAL_GARBAGE_TX_1>');
 -- 4. In-transaction Readback & After-state Assertion:
 --    - Assert old invoices and mapping links are completely absent.
---    - Assert new invoices exist with status = 'invoice_status_1', matching total fees and valid QR satang payloads.
+--    - Assert new invoices exist with status = 'invoice_status_1', valid template_id, authentic created_by, matching total fees and valid QR satang payloads.
 --    - Assert mapping links correctly join new invoices to water and garbage transactions.
 --    - Assert integrated garbage_fee_transaction records remain unmodified.
 -- 5. End with ROLLBACK; (mandatory default for dry-run). Live COMMIT requires explicit separate human sign-off.
