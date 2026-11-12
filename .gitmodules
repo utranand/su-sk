@@ -1,0 +1,4 @@
+[submodule "services/smart-utilities-citizen-frontend/src"]
+	path = services/smart-utilities-citizen-frontend/src
+	url = https://gitlab-ce.arv.co.th/cloud_arv/bedrock/li-taxes/smart-utilities/smart-utilities-citizen-frontend
+	branch = main

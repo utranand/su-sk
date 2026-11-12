@@ -1,6 +1,6 @@
 # Utility invoice correction and cancellation
 
-Reusable playbook `database-correction.invoice-receipt-incident` **1.2.0** for `su-sk`.
+Reusable playbook `database-correction.invoice-receipt-incident` **1.2.1** for `su-sk`.
 
 Start with [RUN.md](RUN.md), use the [invocation prompt](PROMPT.md), and follow the detailed [procedure](prompts/task.md). The [SQL contracts](references/sql-contracts.md) define the incident-specific scripts. Both shared rule files in [the rules catalog](../PLAYBOOK_RULES.md) are binding.
 
@@ -9,6 +9,10 @@ Start with [RUN.md](RUN.md), use the [invocation prompt](PROMPT.md), and follow 
 Prepare or execute exactly the operation requested for the current municipality and payer: correct unpaid/unprinted invoice amounts; cancel verified unpaid invoices with their corresponding exclusively linked unpaid charge transactions, exclusive QR/barcode rows and mappings; investigate receipts without inventing nonexistent receipt work. Preserve paid accounting, every non-target transaction and unrelated configuration.
 
 Preparation is the default. A folder invocation, stage parameter, checkbox, old incident approval or CLI `--yes` never grants a fresh production mutation. Recall a valid current scoped user grant; ask only for missing authority, a material scope change or a genuine operational fact.
+
+## Uploaded payment evidence / หลักฐานการชำระที่อัปโหลด
+
+For payment screenshots, pending-review discrepancies, or a request to retrieve the saved upload, follow [the read-only retrieval guide](references/payment-evidence-retrieval.md). It covers scoped invoice lookup, exact stored URL download, file inspection, checksums and incident storage. An evidence-only request finishes with the finding/report; it does not authorize or require a correction package. SU confirmation after proof submission does not establish bank settlement.
 
 ## Inputs and stages
 

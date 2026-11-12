@@ -21,9 +21,13 @@ Use `jira workspace preflight`. For a standalone parent incident without a works
 
 For the normal Jira case, use the parent `jira-workspace` override with `artifacts write sk-jira-workspace <feature-work-item> outputs/...` or `evidence/...`. Only for an explicitly non-Jira invocation without the Jira workspace contract, resolve `playbook run-base` and use `playbook write-output`. Verify supported writer arguments and returned paths. No direct managed-path writes; do not change framework code just to obtain a preferred extension.
 
+For an explicitly evidence-only request (inspect/download an uploaded image or explain a payment screenshot), follow [payment-evidence retrieval](../references/payment-evidence-retrieval.md), retain the existing parent workspace and finish with evidence/reporting. Do not infer a correction operation, author 03/05 or advance to mutation stages from this request. This bounded investigation can be completed without invoking the full correction lifecycle.
+
 ## 2. Ground in live records early
 
 After scope resolution, query actual incident records, not just connectivity/schema. Confine every financial lookup to the municipality/system/entity or its already pinned PK/reference set. Resolve municipality code through the actual system mapping: municipality code is not automatically `sid`. Verify unique payer/entity within that municipality; do not inspect similarly numbered payers elsewhere.
+
+When the case concerns citizen payment confirmation or a saved proof image, retrieve and visually inspect the actual `payment_confirmation` object using [the evidence guide](../references/payment-evidence-retrieval.md). Record the invoice-to-URL-to-file hash chain. A QR screenshot, proof-submission confirmation, or error-looking-success screen is not bank settlement evidence.
 
 Capture exact invoice UUID, invoice number, period, tax year, status, printing, receipt ID, corresponding charge-transaction/QR/mapping IDs and expected per-table counts. Invoice removal must also remove its exclusively linked unpaid charge transactions under PBR06; zero invoice rows alone is not a NO-OP. Trace owner collection/remaining balance and cron/backfill/next-generation pointers; never run a job or alter settings merely to repair a charge. Discover real enum meanings, columns, inbound dependencies, triggers, rewrite rules, RLS, privileges and available audit fields. Include named/application reference columns without FKs, integrated-water invoice/receipt links and overdue-notice links; freeze the inventory and fail on drift. Do not guess water tables, cancellation statuses or nonexistent bank fields.
 

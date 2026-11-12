@@ -6,7 +6,7 @@
 
 ## Reusable correction/cancellation entry
 
-Use [database-correction.invoice-receipt-incident1.2.0](./invoice-receipt-correction/README.md) for new incidents. Its default stage is preparation. Amount/cancellation catalog templates are non-executable authoring contracts for generating a fresh verified five-script suite; no prior incident IDs/counts/permissions are defaults. Apply the current rule files, exact ID/action footprints, real rollback/commit receipts and distinct authorization gates.
+Use [database-correction.invoice-receipt-incident1.2.1](./invoice-receipt-correction/README.md) for new incidents. Its default stage is preparation. Amount/cancellation catalog templates are non-executable authoring contracts for generating a fresh verified five-script suite; no prior incident IDs/counts/permissions are defaults. Apply the current rule files, exact ID/action footprints, real rollback/commit receipts and distinct authorization gates.
 
 ---
 
